@@ -4,14 +4,27 @@ Reina - 響け！
 Bot to handle deploys and orchestrations
 of feature stagings hosted on Heroku.
 
-Inspired by `kiasaki/github-review-bot`.
+Currently in PoC development phase.
 
 Setup
 -----
 
 `$ bundle install`
+
+
 `$ cp .env.sample .env`
-`$ vim .env`
+
+
+`$ heroku login`
+
+
+`$ heroku keys:add ~/.ssh/id_rsa.pub`
+
+
+`$ heroku plugins:install heroku-cli-oauth`
+
+
+`$ heroku authorizations:create -d "Platform API token for Reina"`
 
 License
 -------

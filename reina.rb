@@ -12,8 +12,21 @@ APPS = {
   honeypot: {
     github: 'honeypotio/honeypot',
     pipeline: 'honeypot',
-    config_vars: heroku.config_var.info_for_app('replica-production-honeypot')
-      .except('BUILDPACK_URL', 'DATABASE_URL', 'REDIS_URL', 'SEED_MODELS')
+    config_vars: {
+      from: 'replica-production-honeypot',
+      except: ['BUILDPACK_URL', 'DATABASE_URL', 'REDIS_URL', 'SEED_MODELS']
+    }
+  },
+  searchspot: {
+    github: 'honeypotio/searchspot',
+    pipeline: 'searchspot',
+    config_vars: {
+      from: 'staging-searchspot',
+      except: ['BONSAI_URL'],
+      copy: [
+        { from: 'BONSAI_URL', to: 'ES_URL', append: ':443' }
+      ]
+    }
   }
 }
 
@@ -75,6 +88,18 @@ class App
 
   def set_env_vars
     config_vars = project.fetch(:config_vars, {})
+
+    if config_vars.has_key?(:from)
+      copy = config_vars.fetch(:copy, []) # this should be dropped...
+      config_vars = heroku.config_var.info_for_app(config_vars[:from])
+        .except(*config_vars.fetch(:except, []))
+      copy.each do |h|
+        s = config_vars[h[:from]]
+        s << h[:append] if h.has_key?(:append)
+        config_vars[h[:to]] = s
+      end
+    end
+
     config_vars['APP_NAME']        = app_name
     config_vars['HEROKU_APP_NAME'] = app_name
     config_vars['DOMAIN_NAME']     = "#{app_name}.herokuapp.com"

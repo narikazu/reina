@@ -1,4 +1,5 @@
 require 'bundler'
+require 'json'
 Bundler.require
 
 CONFIG = {
@@ -10,13 +11,8 @@ heroku = PlatformAPI.connect_oauth(CONFIG[:platform_api])
 APPS = {
   honeypot: {
     github: 'honeypotio/honeypot',
-    addons: %w(heroku-postgresql:hobby-dev heroku-redis:hobby-dev),
-    buildpacks: [
-      'https://github.com/heroku/heroku-buildpack-nodejs',
-      'https://github.com/heroku/heroku-buildpack-ruby.git'
-    ],
     config_vars: heroku.config_var.info_for_app('replica-production-honeypot')
-      .except('BUILDPACK_URL', 'DATABASE_URL', 'REDIS_URL')
+      .except('BUILDPACK_URL', 'DATABASE_URL', 'REDIS_URL', 'SEED_MODELS')
   }
 }
 
@@ -54,28 +50,46 @@ class App
   end
 
   def install_addons
-    project.fetch(:addons, []).each do |addon|
+    addons = project.fetch(:addons, []) + app_json.fetch('addons', [])
+    addons.uniq.each do |addon|
       heroku.addon.create(app_name, { 'plan' => addon })
     end
   end
 
   def add_buildpacks
-    return unless project[:buildpacks]
-
-    buildpacks = project[:buildpacks].map do |buildpack|
+    buildpacks = project.fetch(:buildpacks, []).map do |buildpack|
       { 'buildpack' => buildpack }
+    end + app_json.fetch('buildpacks', []).map do |buildpack|
+      { 'buildpack' => buildpack['url'] }
     end
 
-    heroku.buildpack_installation.update(app_name, 'updates' => buildpacks)
+    heroku.buildpack_installation.update(app_name, 'updates' => buildpacks.uniq)
   end
 
   def set_env_vars
-    config_vars = project[:config_vars] || {}
+    config_vars = project.fetch(:config_vars, {})
     config_vars['APP_NAME']        = app_name
     config_vars['HEROKU_APP_NAME'] = app_name
     config_vars['DOMAIN_NAME']     = "#{app_name}.herokuapp.com"
 
+    app_json.fetch('env', {}).each do |key, hash|
+      config_vars[key] = hash['value'] if hash['value'].present?
+    end
+
     heroku.config_var.update(app_name, config_vars)
+  end
+
+  def setup_dyno
+    app_json.fetch('formation', {}).each do |k, h|
+      heroku.formation.update(app_name, k, h)
+    end
+  end
+
+  def execute_postdeploy_scripts
+    script = app_json.dig('scripts', 'postdeploy')
+    return if script.blank?
+
+    `heroku run #{script} --app #{app_name}`
   end
 
   def deploy
@@ -88,6 +102,15 @@ class App
 
   def remote_name
     "heroku-#{app_name}"
+  end
+
+  def app_json
+    return @app_json if @app_json
+
+    f = File.join(name, 'app.json')
+    return unless File.exists?(f)
+
+    @app_json = JSON.parse(File.read(f))
   end
 end
 
@@ -106,4 +129,12 @@ APPS.each do |name, project|
 
   puts "Deploying #{app.app_name} on https://#{app.app_name}.herokuapp.com..."
   app.deploy
+
+  puts 'Cooldown...'
+  sleep 7
+
+  puts "Executing postdeploy scripts..."
+  app.execute_postdeploy_scripts
+
+  app.setup_dyno
 end

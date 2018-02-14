@@ -11,6 +11,7 @@ heroku = PlatformAPI.connect_oauth(CONFIG[:platform_api])
 APPS = {
   honeypot: {
     github: 'honeypotio/honeypot',
+    pipeline: 'honeypot',
     config_vars: heroku.config_var.info_for_app('replica-production-honeypot')
       .except('BUILDPACK_URL', 'DATABASE_URL', 'REDIS_URL', 'SEED_MODELS')
   }
@@ -51,8 +52,14 @@ class App
 
   def install_addons
     addons = project.fetch(:addons, []) + app_json.fetch('addons', [])
-    addons.uniq.each do |addon|
-      heroku.addon.create(app_name, { 'plan' => addon })
+    addons.each do |addon|
+      if addon.is_a?(Hash) && addon.has_key?('options')
+        addon['config'] = addon.extract!('options')
+      else
+        addon = { 'plan' => addon }
+      end
+
+      heroku.addon.create(app_name, addon)
     end
   end
 
@@ -83,6 +90,17 @@ class App
     app_json.fetch('formation', {}).each do |k, h|
       heroku.formation.update(app_name, k, h)
     end
+  end
+
+  def add_to_pipeline
+    return if project[:pipeline].blank?
+
+    pipeline_id = heroku.pipeline.info(project[:pipeline])['id']
+    heroku.pipeline_coupling.create(
+      'app'      => app_name,
+      'pipeline' => pipeline_id,
+      'stage'    => 'staging'
+    )
   end
 
   def execute_postdeploy_scripts
@@ -137,4 +155,6 @@ APPS.each do |name, project|
   app.execute_postdeploy_scripts
 
   app.setup_dyno
+
+  app.add_to_pipeline
 end

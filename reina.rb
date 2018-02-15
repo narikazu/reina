@@ -8,15 +8,6 @@ CONFIG = {
 heroku = PlatformAPI.connect_oauth(CONFIG[:platform_api])
 
 APPS = {
-  honeypot: {
-    github: 'honeypotio/honeypot',
-    pipeline: 'honeypot',
-    config_vars: {
-      from: 'replica-production-honeypot',
-      except: ['BUILDPACK_URL', 'DATABASE_URL', 'REDIS_URL', 'SEED_MODELS']
-    }
-  },
-
   searchspot: {
     github: 'honeypotio/searchspot',
     pipeline: 'searchspot',
@@ -25,6 +16,18 @@ APPS = {
       except: ['BONSAI_URL'],
       copy: [
         { from: 'BONSAI_URL', to: 'ES_URL', append: ':443' }
+      ]
+    }
+  },
+
+  honeypot: {
+    github: 'honeypotio/honeypot',
+    pipeline: 'honeypot',
+    config_vars: {
+      from: 'replica-production-honeypot',
+      except: ['BUILDPACK_URL', 'DATABASE_URL', 'REDIS_URL', 'SEED_MODELS'],
+      copy: [
+        { from: 'searchspot#url', to: 'SEARCHSPOT_URL' }
       ]
     }
   }
@@ -94,6 +97,11 @@ class App
       copy = config_vars.fetch(:copy, []) # this should be dropped...
       config_vars = heroku.config_var.info_for_app(config_vars[:from])
       copy.each do |h|
+        if h[:from].include?('#url') # special case for now
+          config_vars[h[:to]] = domain_name_for(h[:from].split('#url')[0])
+          next
+        end
+
         s = config_vars[h[:from]]
         s << h[:append] if h.has_key?(:append)
         config_vars[h[:to]] = s
@@ -104,7 +112,7 @@ class App
 
     config_vars['APP_NAME']        = app_name
     config_vars['HEROKU_APP_NAME'] = app_name
-    config_vars['DOMAIN_NAME']     = "#{app_name}.herokuapp.com"
+    config_vars['DOMAIN_NAME']     = domain_name
 
     app_json.fetch('env', {}).each do |key, hash|
       config_vars[key] = hash['value'] if hash['value'].present?
@@ -156,6 +164,16 @@ class App
     return unless File.exists?(f)
 
     @app_json = JSON.parse(File.read(f))
+  end
+
+  def domain_name
+    domain_name_for(app_name)
+  end
+
+  private
+
+  def domain_name_for(s)
+    "#{s}.herokuapp.com"
   end
 end
 

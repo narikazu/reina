@@ -1,5 +1,4 @@
 require 'bundler'
-require 'json'
 Bundler.require
 
 CONFIG = {
@@ -17,6 +16,7 @@ APPS = {
       except: ['BUILDPACK_URL', 'DATABASE_URL', 'REDIS_URL', 'SEED_MODELS']
     }
   },
+
   searchspot: {
     github: 'honeypotio/searchspot',
     pipeline: 'searchspot',
@@ -90,14 +90,16 @@ class App
     config_vars = project.fetch(:config_vars, {})
 
     if config_vars.has_key?(:from)
+      except = config_vars[:except]
       copy = config_vars.fetch(:copy, []) # this should be dropped...
       config_vars = heroku.config_var.info_for_app(config_vars[:from])
-        .except(*config_vars.fetch(:except, []))
       copy.each do |h|
         s = config_vars[h[:from]]
         s << h[:append] if h.has_key?(:append)
         config_vars[h[:to]] = s
       end
+
+      config_vars.except!(*except) if except.present?
     end
 
     config_vars['APP_NAME']        = app_name

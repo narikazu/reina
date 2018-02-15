@@ -45,6 +45,7 @@ DEPENDENCIES
   excon
   fast_blank
   git
+  json
   platform-api
   pry
 

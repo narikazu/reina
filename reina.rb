@@ -5,8 +5,6 @@ CONFIG = {
   platform_api: ENV['PLATFORM_API']
 }
 
-heroku = PlatformAPI.connect_oauth(CONFIG[:platform_api])
-
 APPS = {
   searchspot: {
     github: 'honeypotio/searchspot',
@@ -47,9 +45,11 @@ APPS = {
   }
 }
 
-abort 'Please provide $PLATFORM_API' if CONFIG[:platform_api].blank?
-
 class App
+  DEFAULT_REGION = 'eu'
+  DEFAULT_STAGE  = 'staging'
+  DEFAULT_APP_NAME_PREFIX = 'reina-stg-'
+
   attr_reader :heroku, :name, :project, :pr_number, :g
 
   def initialize(heroku, name, project, pr_number)
@@ -63,20 +63,20 @@ class App
     if Dir.exists?(name)
       @g = Git.open(name)
     else
-      @g = Git.clone("https://github.com/#{project[:github]}", name)
+      @g = Git.clone(github_url, name)
     end
 
     g.pull('origin', 'master')
 
     unless g.remotes.map(&:name).include?(remote_name)
-      g.add_remote(remote_name, "git@heroku.com:#{app_name}.git")
+      g.add_remote(remote_name, remote_url)
     end
   end
 
   def create_app
     heroku.app.create(
       'name'   => app_name,
-      'region' => project.fetch(:region, 'eu')
+      'region' => project.fetch(:region, DEFAULT_REGION)
     )
   end
 
@@ -105,27 +105,28 @@ class App
 
   def set_env_vars
     config_vars = project.fetch(:config_vars, {})
+    except = config_vars[:except]
 
     if config_vars.has_key?(:from)
-      except = config_vars[:except]
-      copy = config_vars.fetch(:copy, []) # this should be dropped...
+      copy = config_vars.fetch(:copy, [])
       config_vars = heroku.config_var.info_for_app(config_vars[:from])
 
       vars_cache = {}
       copy.each do |h|
-        if h[:from].include?('#')
-          source, var = h[:from].split('#')
-          source_app_name = app_name_for(source)
-          if var == 'url'
-            config_vars[h[:to]] = "https://#{domain_name_for(source_app_name)}"
-          else
-            vars_cache[source_app_name] ||= heroku.config_var.info_for_app(source_app_name)
-            config_vars[h[:to]] = vars_cache[source_app_name][var]
-          end
-        else
+        unless h[:from].include?('#')
           s = config_vars[h[:from]]
-          s << h[:append] if h.has_key?(:append)
+          s << h[:append] if h[:append].present?
           config_vars[h[:to]] = s
+          next
+        end
+
+        source, var = h[:from].split('#')
+        source_app_name = app_name_for(source)
+        if var == 'url'
+          config_vars[h[:to]] = "https://#{domain_name_for(source_app_name)}"
+        else
+          vars_cache[source_app_name] ||= heroku.config_var.info_for_app(source_app_name)
+          config_vars[h[:to]] = vars_cache[source_app_name][var]
         end
       end
     end
@@ -156,7 +157,7 @@ class App
     heroku.pipeline_coupling.create(
       'app'      => app_name,
       'pipeline' => pipeline_id,
-      'stage'    => 'staging'
+      'stage'    => DEFAULT_STAGE
     )
   end
 
@@ -199,33 +200,48 @@ class App
   end
 
   def app_name_for(s)
-    "reina-stg-#{s}-#{pr_number}"
+    "#{DEFAULT_APP_NAME_PREFIX}#{s}-#{pr_number}"
+  end
+
+  def github_url
+    "https://github.com/#{project[:github]}"
+  end
+
+  def remote_url
+    "git@heroku.com:#{app_name}.git"
   end
 end
 
-APPS.each do |name, project|
-  app = App.new(heroku, name, project, 1)
-  abort '#{app.app_name} is too long pls send help' if app.app_name.length >= 30
+def main
+  heroku = PlatformAPI.connect_oauth(CONFIG[:platform_api])
+  abort 'Please provide $PLATFORM_API' if CONFIG[:platform_api].blank?
 
-  puts "Fetching #{project[:github]}..."
-  app.fetch_repository
+  APPS.each do |name, project|
+    app = App.new(heroku, name, project, 1)
+    abort '#{app.app_name} is too long pls send help' if app.app_name.length >= 30
 
-  puts "Provisioning #{app.app_name} on Heroku..."
-  app.create_app
-  app.install_addons
-  app.add_buildpacks
-  app.set_env_vars
+    puts "Fetching #{project[:github]}..."
+    app.fetch_repository
 
-  puts "Deploying #{app.app_name} on https://#{app.app_name}.herokuapp.com..."
-  app.deploy
+    puts "Provisioning #{app.app_name} on Heroku..."
+    app.create_app
+    app.install_addons
+    app.add_buildpacks
+    app.set_env_vars
 
-  puts 'Cooldown...'
-  sleep 7
+    puts "Deploying #{app.app_name} on https://#{app.app_name}.herokuapp.com..."
+    app.deploy
 
-  puts "Executing postdeploy scripts..."
-  app.execute_postdeploy_scripts
+    puts 'Cooldown...'
+    sleep 7
 
-  app.setup_dyno
+    puts "Executing postdeploy scripts..."
+    app.execute_postdeploy_scripts
 
-  app.add_to_pipeline
-end if __FILE__ == 'reina.rb'
+    app.setup_dyno
+
+    app.add_to_pipeline
+  end
+end
+
+main if __FILE__ == 'reina.rb'

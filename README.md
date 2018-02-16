@@ -4,14 +4,14 @@ Reina - 響け！
 Bot to handle deploys and orchestrations
 of feature stagings hosted on Heroku.
 
-Currently in PoC development phase.
+Currently in PoC development phase. I mean, it's not
+even a bot yet, actually.
 
 We won't use Heroku's App Setup as it seems to require
 the direct URL to the tarball of a repository which is
-hard to provide when it is private.
-
-In any case, we want to support the `app.json` by
-parsing it ourselves.
+hard to provide when it is private. So what we do,
+is parsing ourselves the `app.json` manifest file
+while supporting anyway the hardcoded configuration mapping.
 
 Setup
 -----

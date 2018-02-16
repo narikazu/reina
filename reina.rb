@@ -216,10 +216,16 @@ def main
   heroku = PlatformAPI.connect_oauth(CONFIG[:platform_api])
   abort 'Please provide $PLATFORM_API' if CONFIG[:platform_api].blank?
 
-  APPS.each do |name, project|
-    app = App.new(heroku, name, project, 1)
-    abort '#{app.app_name} is too long pls send help' if app.app_name.length >= 30
+  pr_number = ARGV[0].to_i
+  abort 'Given PR number should be greater than 0' if pr_number <= 0
 
+  apps = APPS.map { |name, project| App.new(heroku, name, project, pr_number) }
+
+  apps.each do |app|
+    abort "#{app.app_name} is too long pls send help" if app.app_name.length >= 30
+  end
+
+  apps.each do |app|
     puts "Fetching #{project[:github]}..."
     app.fetch_repository
 
@@ -229,7 +235,7 @@ def main
     app.add_buildpacks
     app.set_env_vars
 
-    puts "Deploying #{app.app_name} on https://#{app.app_name}.herokuapp.com..."
+    puts "Deploying #{app.app_name} on https://#{app.domain_name}..."
     app.deploy
 
     puts 'Cooldown...'

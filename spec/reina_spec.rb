@@ -132,14 +132,14 @@ RSpec.describe App do
     subject(:set_env_vars) { app.set_env_vars }
 
     it 'set the env vars defined in the config and in the app.json file' do
-      expect(heroku_config_var).to receive(:info_for_app).with('staging-searchspot').and_return({
+      allow(heroku_config_var).to receive(:info_for_app).with('staging-searchspot').and_return({
         'BONSAI_URL' => 'blabla'
       })
       expect(heroku_config_var).to receive(:update).with(app.app_name, {
         "ES_URL"   => "blabla:443",
-        "APP_NAME" => "reina-staging-searchspot-pr-1234",
-        "HEROKU_APP_NAME" => "reina-staging-searchspot-pr-1234",
-        "DOMAIN_NAME"  => "reina-staging-searchspot-pr-1234.herokuapp.com",
+        "APP_NAME" => "reina-stg-searchspot-1234",
+        "HEROKU_APP_NAME" => "reina-stg-searchspot-1234",
+        "DOMAIN_NAME"  => "reina-stg-searchspot-1234.herokuapp.com",
         "RUST_VERSION" => "nightly"
       })
       set_env_vars
@@ -193,11 +193,11 @@ RSpec.describe App do
 
   describe '#app_name' do
     subject(:app_name) { app.app_name }
-    it { is_expected.to eq('reina-staging-searchspot-pr-1234') }
+    it { is_expected.to eq('reina-stg-searchspot-1234') }
   end
 
   describe '#remote_name' do
     subject(:remote_name) { app.remote_name }
-    it { is_expected.to eq('heroku-reina-staging-searchspot-pr-1234') }
+    it { is_expected.to eq('heroku-reina-stg-searchspot-1234') }
   end
 end

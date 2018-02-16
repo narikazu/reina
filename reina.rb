@@ -30,6 +30,20 @@ APPS = {
         { from: 'searchspot#url', to: 'SEARCHSPOT_URL' }
       ]
     }
+  },
+
+  'admin-honeypot'.to_sym => {
+    github: 'honeypotio/admin_active',
+    pipeline: 'admin-honeypot',
+    config_vars: {
+      from: 'staging-admin-honeypot',
+      copy: [
+        { from: 'honeypot#url',          to: 'APP_HOST' },
+        { from: 'honeypot#DATABASE_URL', to: 'DATABASE_URL' },
+        { from: 'honeypot#REDIS_URL',    to: 'REDIS_URL' },
+        { from: 'searchspot#url',        to: 'SEARCHSPOT_URL' }
+      ]
+    }
   }
 }
 
@@ -96,19 +110,27 @@ class App
       except = config_vars[:except]
       copy = config_vars.fetch(:copy, []) # this should be dropped...
       config_vars = heroku.config_var.info_for_app(config_vars[:from])
+
+      vars_cache = {}
       copy.each do |h|
-        if h[:from].include?('#url') # special case for now
-          config_vars[h[:to]] = domain_name_for(h[:from].split('#url')[0])
-          next
+        if h[:from].include?('#')
+          source, var = h[:from].split('#')
+          source_app_name = app_name_for(source)
+          if var == 'url'
+            config_vars[h[:to]] = "https://#{domain_name_for(source_app_name)}"
+          else
+            vars_cache[source_app_name] ||= heroku.config_var.info_for_app(source_app_name)
+            config_vars[h[:to]] = vars_cache[source_app_name][var]
+          end
+        else
+          s = config_vars[h[:from]]
+          s << h[:append] if h.has_key?(:append)
+          config_vars[h[:to]] = s
         end
-
-        s = config_vars[h[:from]]
-        s << h[:append] if h.has_key?(:append)
-        config_vars[h[:to]] = s
       end
-
-      config_vars.except!(*except) if except.present?
     end
+
+    config_vars.except!(*except) if except.present?
 
     config_vars['APP_NAME']        = app_name
     config_vars['HEROKU_APP_NAME'] = app_name
@@ -149,14 +171,6 @@ class App
     g.push(remote_name, 'master')
   end
 
-  def app_name
-    "reina-staging-#{name}-pr-#{pr_number}"
-  end
-
-  def remote_name
-    "heroku-#{app_name}"
-  end
-
   def app_json
     return @app_json if @app_json
 
@@ -170,10 +184,22 @@ class App
     domain_name_for(app_name)
   end
 
+  def app_name
+    app_name_for(name)
+  end
+
+  def remote_name
+    "heroku-#{app_name}"
+  end
+
   private
 
   def domain_name_for(s)
     "#{s}.herokuapp.com"
+  end
+
+  def app_name_for(s)
+    "reina-stg-#{s}-#{pr_number}"
   end
 end
 

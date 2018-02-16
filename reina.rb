@@ -161,7 +161,7 @@ class App
     return @app_json if @app_json
 
     f = File.join(name, 'app.json')
-    return unless File.exists?(f)
+    return {} unless File.exists?(f)
 
     @app_json = JSON.parse(File.read(f))
   end
@@ -202,4 +202,4 @@ APPS.each do |name, project|
   app.setup_dyno
 
   app.add_to_pipeline
-end
+end if __FILE__ == 'reina.rb'

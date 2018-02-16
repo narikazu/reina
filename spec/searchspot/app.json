@@ -1,0 +1,49 @@
+{
+  "name": "searchspot",
+  "scripts": {
+  },
+  "env": {
+    "AUTH_ENABLED": {
+      "required": true
+    },
+    "AUTH_READ": {
+      "required": true
+    },
+    "AUTH_WRITE": {
+      "required": true
+    },
+    "TOKEN_READ_LIFETIME": {
+      "required": true
+    },
+    "ES_URL": {
+      "required": true
+    },
+    "ES_INDEX": {
+      "required": true
+    },
+    "HTTP_HOST": {
+      "required": true
+    },
+    "RUST_VERSION": {
+      "value": "nightly"
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1
+    }
+  },
+  "addons": [
+    {
+      "plan": "bonsai",
+      "options": {
+        "version": "2.4"
+      }
+    }
+  ],
+  "buildpacks": [
+    {
+      "url": "https://github.com/RoxasShadow/heroku-buildpack-rust.git#patch-2"
+    }
+  ]
+}

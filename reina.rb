@@ -239,7 +239,7 @@ def main
   end
 
   apps.each do |app|
-    puts "Fetching #{project[:github]}..."
+    puts "Fetching #{app.project[:github]}..."
     app.fetch_repository
 
     puts "Provisioning #{app.app_name} on Heroku..."

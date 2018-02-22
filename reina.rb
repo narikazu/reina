@@ -25,7 +25,20 @@ APPS = {
       from: 'replica-production-honeypot',
       except: ['BUILDPACK_URL', 'DATABASE_URL', 'REDIS_URL', 'SEED_MODELS'],
       copy: [
-        { from: 'searchspot#url', to: 'SEARCHSPOT_URL' }
+        { from: 'searchspot#url', to: 'SEARCHSPOT_URL' },
+        { from: 'frontend#url', to: 'FRONTEND_HOST' }
+      ]
+    }
+  },
+
+  frontend: {
+    github: 'honeypotio/frontend',
+    pipeline: 'honeypot-frontend',
+    config_vars: {
+      from: 'staging-honeypot-frontend',
+      copy: [
+        { from: 'searchspot#url', to: 'SEARCHSPOT_URL' },
+        { from: 'honeypot#url',   to: 'API_BASE' }
       ]
     }
   },
@@ -226,7 +239,7 @@ def main
   end
 
   apps.each do |app|
-    puts "Fetching #{project[:github]}..."
+    puts "Fetching #{app.project[:github]}..."
     app.fetch_repository
 
     puts "Provisioning #{app.app_name} on Heroku..."

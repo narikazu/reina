@@ -46,6 +46,7 @@ GEM
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.7.0)
     rspec-support (3.7.1)
+    thread (0.2.2)
     thread_safe (0.3.6)
     tzinfo (1.2.4)
       thread_safe (~> 0.1)
@@ -63,6 +64,7 @@ DEPENDENCIES
   platform-api
   pry
   rspec
+  thread
 
 BUNDLED WITH
    1.16.1

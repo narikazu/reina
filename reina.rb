@@ -1,4 +1,6 @@
 require 'bundler'
+require 'etc'
+require 'readline'
 Bundler.require
 
 CONFIG = {
@@ -33,6 +35,7 @@ APPS = {
   'admin-honeypot'.to_sym => {
     github: 'honeypotio/admin_active',
     pipeline: 'admin-honeypot',
+    parallel: false,
     config_vars: {
       from: 'staging-admin-honeypot',
       copy: [
@@ -193,6 +196,10 @@ class App
     "heroku-#{app_name}"
   end
 
+  def parallel?
+    project[:parallel] != false
+  end
+
   private
 
   def domain_name_for(s)
@@ -225,8 +232,19 @@ def main
     abort "#{app.app_name} is too long pls send help" if app.app_name.length >= 30
   end
 
-  apps.each do |app|
-    puts "Fetching #{project[:github]}..."
+  existing_apps = heroku.app.list.map { |a| a['name'] } & apps.map(&:app_name)
+  if existing_apps.present?
+    puts 'The following apps already exist on Heroku:'
+    puts existing_apps.map { |a| "- #{a}" }
+    abort if Readline.readline('Type "OK" to delete the apps above: ', true).strip != 'OK'
+    existing_apps.each do |app|
+      puts "Deleting #{app}"
+      heroku.app.delete(app)
+    end
+  end
+
+  process_app = ->(app) do
+    puts "Fetching #{app.project[:github]}..."
     app.fetch_repository
 
     puts "Provisioning #{app.app_name} on Heroku..."
@@ -248,6 +266,14 @@ def main
 
     app.add_to_pipeline
   end
+
+  pool = Thread.pool(Etc.nprocessors)
+  apps.select(&:parallel?).each do |app|
+    pool.process { process_app.call(app) }
+  end
+  pool.shutdown
+
+  apps.reject(&:parallel?).each { |app| process_app.call(app) }
 end
 
 main if __FILE__ == 'reina.rb'

@@ -66,13 +66,14 @@ class App
   DEFAULT_STAGE  = 'staging'
   DEFAULT_APP_NAME_PREFIX = 'reina-stg-'
 
-  attr_reader :heroku, :name, :project, :pr_number, :g
+  attr_reader :heroku, :name, :project, :pr_number, :branch, :g
 
-  def initialize(heroku, name, project, pr_number)
+  def initialize(heroku, name, project, pr_number, branch)
     @heroku    = heroku
     @name      = name.to_s
     @project   = project
     @pr_number = pr_number
+    @branch    = branch
   end
 
   def fetch_repository
@@ -82,7 +83,8 @@ class App
       @g = Git.clone(github_url, name)
     end
 
-    g.pull('origin', 'master')
+    g.pull('origin', branch)
+    g.checkout(g.branch(branch))
 
     unless g.remotes.map(&:name).include?(remote_name)
       g.add_remote(remote_name, remote_url)
@@ -236,10 +238,15 @@ def main
   heroku = PlatformAPI.connect_oauth(CONFIG[:platform_api])
   abort 'Please provide $PLATFORM_API' if CONFIG[:platform_api].blank?
 
-  pr_number = ARGV[0].to_i
+  params = ARGV.dup
+  pr_number = params.shift.to_i
+  branches  = params.map { |param| param.split('#') }.to_h
   abort 'Given PR number should be greater than 0' if pr_number <= 0
 
-  apps = APPS.map { |name, project| App.new(heroku, name, project, pr_number) }
+  apps = APPS.map do |name, project|
+    branch = branches[name.to_s].presence || 'master'
+    App.new(heroku, name, project, pr_number, branch)
+  end
 
   apps.each do |app|
     abort "#{app.app_name} is too long pls send help" if app.app_name.length >= 30

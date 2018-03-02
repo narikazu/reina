@@ -19,10 +19,11 @@ RSpec.describe App do
       config_var: heroku_config_var
     )
   end
-  let(:git) { double('Git', pull: true, remotes: [], add_remote: true) }
+  let(:git) { double('Git', pull: true, remotes: [], add_remote: true, branch: true, checkout: true) }
 
   let(:pr_number) { 1234 }
-  let(:app) { App.new(heroku, :searchspot, APPS[:searchspot], pr_number) }
+  let(:branch) { 'features/hibike' }
+  let(:app) { App.new(heroku, :searchspot, APPS[:searchspot], pr_number, branch) }
 
   before do
     allow(PlatformAPI).to receive(:connect_oauth).and_return(heroku)
@@ -58,6 +59,9 @@ RSpec.describe App do
     end
 
     it 'pulls from origin/master' do
+      expect(git).to receive(:pull).with('origin', branch)
+      expect(git).to receive(:checkout)
+      expect(git).to receive(:branch).with(branch)
       fetch_repository
     end
 

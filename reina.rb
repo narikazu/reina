@@ -1,5 +1,4 @@
 require 'bundler'
-require 'etc'
 require 'readline'
 Bundler.require
 
@@ -66,13 +65,14 @@ class App
   DEFAULT_STAGE  = 'staging'
   DEFAULT_APP_NAME_PREFIX = 'reina-stg-'
 
-  attr_reader :heroku, :name, :project, :pr_number, :g
+  attr_reader :heroku, :name, :project, :pr_number, :branch, :g
 
-  def initialize(heroku, name, project, pr_number)
+  def initialize(heroku, name, project, pr_number, branch)
     @heroku    = heroku
     @name      = name.to_s
     @project   = project
     @pr_number = pr_number
+    @branch    = branch
   end
 
   def fetch_repository
@@ -82,7 +82,8 @@ class App
       @g = Git.clone(github_url, name)
     end
 
-    g.pull('origin', 'master')
+    g.pull('origin', branch)
+    g.checkout(g.branch(branch))
 
     unless g.remotes.map(&:name).include?(remote_name)
       g.add_remote(remote_name, remote_url)
@@ -161,7 +162,12 @@ class App
   end
 
   def setup_dyno
-    app_json.fetch('formation', {}).each do |k, h|
+    formation = app_json.fetch('formation', {})
+    return if formation.blank?
+
+    formation.each do |k, h|
+      h['size'] = 'free'
+
       heroku.formation.update(app_name, k, h)
     end
   end
@@ -236,10 +242,15 @@ def main
   heroku = PlatformAPI.connect_oauth(CONFIG[:platform_api])
   abort 'Please provide $PLATFORM_API' if CONFIG[:platform_api].blank?
 
-  pr_number = ARGV[0].to_i
+  params = ARGV.dup
+  pr_number = params.shift.to_i
+  branches  = params.map { |param| param.split('#') }.to_h
   abort 'Given PR number should be greater than 0' if pr_number <= 0
 
-  apps = APPS.map { |name, project| App.new(heroku, name, project, pr_number) }
+  apps = APPS.map do |name, project|
+    branch = branches[name.to_s].presence || 'master'
+    App.new(heroku, name, project, pr_number, branch)
+  end
 
   apps.each do |app|
     abort "#{app.app_name} is too long pls send help" if app.app_name.length >= 30
@@ -257,36 +268,48 @@ def main
   end
 
   process_app = ->(app) do
-    puts "Fetching #{app.project[:github]}..."
+    puts "#{app.name}: Fetching from #{app.project[:github]}..."
     app.fetch_repository
 
-    puts "Provisioning #{app.app_name} on Heroku..."
+    puts "#{app.name}: Provisioning #{app.app_name} on Heroku..."
     app.create_app
     app.install_addons
     app.add_buildpacks
     app.set_env_vars
 
-    puts "Deploying #{app.app_name} on https://#{app.domain_name}..."
+    puts "#{app.name}: Deploying to https://#{app.domain_name}..."
     app.deploy
 
-    puts 'Cooldown...'
+    puts "#{app.name}: Cooldown..."
     sleep 7
 
-    puts "Executing postdeploy scripts..."
+    puts "#{app.name}: Executing postdeploy scripts..."
     app.execute_postdeploy_scripts
 
+    puts "#{app.name}: Setting up dynos..."
     app.setup_dyno
 
+    puts "#{app.name}: Adding to pipeline..."
     app.add_to_pipeline
   end
 
-  pool = Thread.pool(Etc.nprocessors)
-  apps.select(&:parallel?).each do |app|
-    pool.process { process_app.call(app) }
+  Parallel.each(apps.select(&:parallel?)) do |app|
+    begin
+      process_app.call(app)
+    rescue Exception => e
+      puts "#{app.name}: #{e.response.body}"
+    end
   end
-  pool.shutdown
 
-  apps.reject(&:parallel?).each { |app| process_app.call(app) }
+  apps.reject(&:parallel?).each do |app|
+    begin
+      process_app.call(app)
+    rescue Exception => e
+      puts "#{app.name}: #{e.response.body}"
+    end
+  end
+
+  puts "Done."
 end
 
 main if __FILE__ == 'reina.rb'

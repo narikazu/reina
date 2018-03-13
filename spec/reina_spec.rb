@@ -150,12 +150,13 @@ RSpec.describe App do
     end
   end
 
-  describe '#setup_dyno' do
-    subject(:setup_dyno) { app.setup_dyno }
+  describe '#setup_dynos' do
+    subject(:setup_dynos) { app.setup_dynos }
 
     it 'setup the dynos as defined in the app.json file' do
-      expect(heroku_formation).to receive(:update).with(app.app_name, 'web', { 'quantity' => 1 })
-      setup_dyno
+      dyno_opts = { 'quantity' => 1, 'size' => 'free' }
+      expect(heroku_formation).to receive(:update).with(app.app_name, 'web', dyno_opts)
+      setup_dynos
     end
   end
 

@@ -161,7 +161,7 @@ class App
     heroku.config_var.update(app_name, config_vars)
   end
 
-  def setup_dyno
+  def setup_dynos
     formation = app_json.fetch('formation', {})
     return if formation.blank?
 
@@ -287,7 +287,7 @@ def main
     app.execute_postdeploy_scripts
 
     puts "#{app.name}: Setting up dynos..."
-    app.setup_dyno
+    app.setup_dynos
 
     puts "#{app.name}: Adding to pipeline..."
     app.add_to_pipeline

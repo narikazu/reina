@@ -1,5 +1,4 @@
 require 'bundler'
-require 'etc'
 require 'readline'
 Bundler.require
 
@@ -163,7 +162,12 @@ class App
   end
 
   def setup_dyno
-    app_json.fetch('formation', {}).each do |k, h|
+    formation = app_json.fetch('formation', {})
+    return if formation.blank?
+
+    formation.each do |k, h|
+      h['size'] = 'free'
+
       heroku.formation.update(app_name, k, h)
     end
   end
@@ -264,36 +268,48 @@ def main
   end
 
   process_app = ->(app) do
-    puts "Fetching #{app.project[:github]}..."
+    puts "#{app.name}: Fetching from #{app.project[:github]}..."
     app.fetch_repository
 
-    puts "Provisioning #{app.app_name} on Heroku..."
+    puts "#{app.name}: Provisioning #{app.app_name} on Heroku..."
     app.create_app
     app.install_addons
     app.add_buildpacks
     app.set_env_vars
 
-    puts "Deploying #{app.app_name} on https://#{app.domain_name}..."
+    puts "#{app.name}: Deploying to https://#{app.domain_name}..."
     app.deploy
 
-    puts 'Cooldown...'
+    puts "#{app.name}: Cooldown..."
     sleep 7
 
-    puts "Executing postdeploy scripts..."
+    puts "#{app.name}: Executing postdeploy scripts..."
     app.execute_postdeploy_scripts
 
+    puts "#{app.name}: Setting up dynos..."
     app.setup_dyno
 
+    puts "#{app.name}: Adding to pipeline..."
     app.add_to_pipeline
   end
 
-  pool = Thread.pool(Etc.nprocessors)
-  apps.select(&:parallel?).each do |app|
-    pool.process { process_app.call(app) }
+  Parallel.each(apps.select(&:parallel?)) do |app|
+    begin
+      process_app.call(app)
+    rescue Exception => e
+      puts "#{app.name}: #{e.response.body}"
+    end
   end
-  pool.shutdown
 
-  apps.reject(&:parallel?).each { |app| process_app.call(app) }
+  apps.reject(&:parallel?).each do |app|
+    begin
+      process_app.call(app)
+    rescue Exception => e
+      puts "#{app.name}: #{e.response.body}"
+    end
+  end
+
+  puts "Done."
 end
 
 main if __FILE__ == 'reina.rb'

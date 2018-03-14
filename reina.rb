@@ -244,7 +244,7 @@ def main
 
   params = ARGV.dup
   pr_number = params.shift.to_i
-  branches  = params.map { |param| param.split('#') }.to_h
+  branches  = params.map { |param| param.split('#', 2) }.to_h
   abort 'Given PR number should be greater than 0' if pr_number <= 0
 
   apps = APPS.map do |name, project|

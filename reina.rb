@@ -296,6 +296,8 @@ def main
   Parallel.each(apps.select(&:parallel?)) do |app|
     begin
       process_app.call(app)
+    rescue Git::GitExecuteError => e
+      puts "#{app.name}: #{e.message}"
     rescue Exception => e
       puts "#{app.name}: #{e.response.body}"
     end
@@ -304,6 +306,8 @@ def main
   apps.reject(&:parallel?).each do |app|
     begin
       process_app.call(app)
+    rescue Git::GitExecuteError => e
+      puts "#{app.name}: #{e.message}"
     rescue Exception => e
       puts "#{app.name}: #{e.response.body}"
     end

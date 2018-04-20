@@ -342,6 +342,10 @@ class Server < Sinatra::Base
     halt 500, env['sinatra.error'].message
   end
 
+  get '/' do
+    '<img src="https://i.imgur.com/UDxbOsz.png?1">'
+  end
+
   post '/github' do
     GitHubController.new(CONFIG[:github]).dispatch(request)
   end

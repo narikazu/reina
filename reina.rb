@@ -2,6 +2,10 @@ require 'bundler'
 require 'readline'
 Bundler.require
 
+unless File.exists?('./config.rb')
+  FileUtils.cp('./config.rb.sample', './config.rb')
+end
+
 require './config.rb'
 
 class App

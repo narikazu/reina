@@ -339,7 +339,7 @@ class Server < Sinatra::Base
   end
 
   error Exception do
-    halt 500, env['sinatra.error'].message
+    halt 500, 'Something bad happened... probably'
   end
 
   get '/' do
@@ -351,6 +351,4 @@ class Server < Sinatra::Base
   end
 end
 
-if __FILE__ == 'reina.rb'
-  main
-end
+main if __FILE__ == 'reina.rb'

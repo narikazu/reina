@@ -2,68 +2,12 @@ require 'bundler'
 require 'readline'
 Bundler.require
 
-CONFIG = {
-  platform_api: ENV['PLATFORM_API']
-}
-
-APPS = {
-  searchspot: {
-    github: 'honeypotio/searchspot',
-    pipeline: 'searchspot',
-    config_vars: {
-      from: 'staging-searchspot',
-      except: ['BONSAI_URL'],
-      copy: [
-        { from: 'BONSAI_URL', to: 'ES_URL', append: ':443' }
-      ]
-    }
-  },
-
-  honeypot: {
-    github: 'honeypotio/honeypot',
-    pipeline: 'honeypot',
-    config_vars: {
-      from: 'replica-production-honeypot',
-      except: ['BUILDPACK_URL', 'DATABASE_URL', 'REDIS_URL', 'SEED_MODELS'],
-      copy: [
-        { from: 'searchspot#url', to: 'SEARCHSPOT_URL' },
-        { from: 'frontend#url', to: 'FRONTEND_HOST' }
-      ]
-    }
-  },
-
-  frontend: {
-    github: 'honeypotio/frontend',
-    pipeline: 'honeypot-frontend',
-    config_vars: {
-      from: 'staging-honeypot-frontend',
-      copy: [
-        { from: 'searchspot#url', to: 'SEARCHSPOT_URL' },
-        { from: 'honeypot#url',   to: 'API_BASE' }
-      ]
-    }
-  },
-
-  'admin-honeypot'.to_sym => {
-    github: 'honeypotio/admin_active',
-    pipeline: 'admin-honeypot',
-    parallel: false,
-    config_vars: {
-      from: 'staging-admin-honeypot',
-      copy: [
-        { from: 'honeypot#url',          to: 'APP_HOST' },
-        { from: 'honeypot#DATABASE_URL', to: 'DATABASE_URL' },
-        { from: 'honeypot#REDIS_URL',    to: 'REDIS_URL' },
-        { from: 'searchspot#url',        to: 'SEARCHSPOT_URL' }
-      ]
-    }
-  }
-}
+require './config.rb'
 
 class App
-  DEFAULT_REGION = 'eu'
-  DEFAULT_STAGE  = 'staging'
-  DEFAULT_APP_NAME_PREFIX = 'reina-stg-'
+  DEFAULT_REGION = 'eu'.freeze
+  DEFAULT_STAGE  = 'staging'.freeze
+  DEFAULT_APP_NAME_PREFIX = CONFIG[:app_name_prefix].freeze
 
   attr_reader :heroku, :name, :project, :pr_number, :branch, :g
 
@@ -316,4 +260,87 @@ def main
   puts "Done."
 end
 
-main if __FILE__ == 'reina.rb'
+return main if __FILE__ == 'reina.rb'
+
+class SignatureError < StandardError
+  def message
+    'Signatures do not match'
+  end
+end
+
+class UnsupportedEventError < StandardError; end
+
+class GitHubController
+  def self.subscribe!(config)
+    client = Octokit::Client.new(login: config[:username], password: config[:password])
+
+    client.subscribe(
+      "https://github.com/#{config[:repo]}/events/push.json",
+      config[:callback_url],
+      config[:webhook_secret]
+    )
+  end
+
+  def initialize(config)
+    @config = config
+  end
+
+  def dispatch(request)
+    @request = request
+
+    raise UnsupportedEventError if event != 'issues'.freeze
+    authenticate!
+
+    p payload
+    # issue_created if payload['action'] == 'created'.freeze
+  end
+
+  private
+
+  attr_reader :config, :request
+
+  def authenticate!
+    hash = OpenSSL::HMAC.hexdigest(hmac_digest, config[:webhook_secret], raw_payload)
+    raise SignatureError if "sha1=#{hash}" != signature
+  end
+
+  def signature
+    request.env['HTTP_X_HUB_SIGNATURE']
+  end
+
+  def event
+    request.env['HTTP_X_GITHUB_EVENT']
+  end
+
+  def payload
+    @_payload ||=JSON.parse(raw_payload)
+  end
+
+  def raw_payload
+    @_raw_payload ||= request.body.to_s
+  end
+
+  def hmac_digest
+    @_hmac__digest ||= OpenSSL::Digest.new('sha1')
+  end
+end
+
+class Server < Sinatra::Base
+  set :show_exceptions, false
+
+  error SignatureError do
+    halt 403, env['sinatra.error'].message
+  end
+
+  error UnsupportedEventError do
+    halt 403, env['sinatra.error'].message
+  end
+
+  error Exception do
+    halt 500, env['sinatra.error'].message
+  end
+
+  post '/github' do
+    GitHubController.new(CONFIG[:github]).dispatch(request)
+  end
+end

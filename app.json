@@ -1,0 +1,31 @@
+{
+  "name": "reina",
+  "env": {
+    "HEROKU_PLATFORM_API": {
+      "required": true
+    },
+    "GITHUB_USERNAME": {
+      "required": true
+    },
+    "GITHUB_PASSWORD": {
+      "required": true
+    },
+    "GITHUB_WEBHOOK_SECRET": {
+      "required": true
+    },
+    "GITHUB_REPO": {
+      "required": true
+    },
+    "DOMAIN_URL": {
+      "required": true
+    },
+    "APP_NAME_PREFIX": {
+      "required": true
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1
+    }
+  }
+}

@@ -260,8 +260,6 @@ def main
   puts "Done."
 end
 
-return main if __FILE__ == 'reina.rb'
-
 class SignatureError < StandardError
   def message
     'Signatures do not match'
@@ -343,4 +341,8 @@ class Server < Sinatra::Base
   post '/github' do
     GitHubController.new(CONFIG[:github]).dispatch(request)
   end
+end
+
+if __FILE__ == 'reina.rb'
+  main
 end

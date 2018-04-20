@@ -1,4 +1,4 @@
-CONFIG = {
+CONFIG = ENV['CONFIG'].present? ? JSON.parse(ENV['CONFIG']) : {
   platform_api: ENV['HEROKU_PLATFORM_API'],
 
   github: {
@@ -12,7 +12,7 @@ CONFIG = {
   app_name_prefix: ENV['APP_NAME_PREFIX']
 }
 
-APPS = {
+APPS = ENV['APPS'].present? ? JSON.parse(ENV['APPS']) : {
   searchspot: {
     github: 'honeypotio/searchspot',
     pipeline: 'searchspot',

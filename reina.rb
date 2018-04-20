@@ -273,15 +273,7 @@ end
 class UnsupportedEventError < StandardError; end
 
 class GitHubController
-  def self.subscribe!(config)
-    client = Octokit::Client.new(login: config[:username], password: config[:password])
-
-    client.subscribe(
-      "https://github.com/#{config[:repo]}/events/push.json",
-      config[:callback_url],
-      config[:webhook_secret]
-    )
-  end
+  CMD_TRIGGER = 'reina: d '.freeze
 
   def initialize(config)
     @config = config
@@ -290,11 +282,10 @@ class GitHubController
   def dispatch(request)
     @request = request
 
-    raise UnsupportedEventError if event != 'issues'.freeze
+    raise UnsupportedEventError if event != 'issue_comment'.freeze
     authenticate!
 
-    p payload
-    # issue_created if payload['action'] == 'created'.freeze
+    deploy if deploy_requested?
   end
 
   private
@@ -306,6 +297,23 @@ class GitHubController
     raise SignatureError if "sha1=#{hash}" != signature
   end
 
+  def deploy_requested?
+    return if action != 'created'.freeze
+    return unless comment_body.start_with?(CMD_TRIGGER)
+
+    args = comment_body
+      .lines[0]
+      .split(CMD_TRIGGER)[1]
+      .split(' ')
+      .reject(&:blank?)
+      .map { |arg| '"' + arg + '"' }
+    args.prepend issue_number.to_s
+
+    cmd = "ruby reina.rb #{args.join(' ')}"
+    puts "Executing `#{cmd}` right now..."
+    system cmd
+  end
+
   def signature
     request.env['HTTP_X_HUB_SIGNATURE']
   end
@@ -314,12 +322,33 @@ class GitHubController
     request.env['HTTP_X_GITHUB_EVENT']
   end
 
+  def action
+    payload['action']
+  end
+
+  def issue_number
+    payload.dig('issue', 'number')
+  end
+
+  def comment_body
+    @_comment_body ||= payload.dig('comment', 'body').strip
+  end
+
+  def comment_author
+    payload.dig('comment', 'user', 'login')
+  end
+
   def payload
-    @_payload ||=JSON.parse(raw_payload)
+    return @_payload if @_payload.present?
+
+    @_payload ||= JSON.parse(raw_payload)
   end
 
   def raw_payload
-    @_raw_payload ||= request.body.to_s
+    return @_raw_payload if @_raw_payload.present?
+
+    request.body.rewind
+    @_raw_payload ||= request.body.read
   end
 
   def hmac_digest

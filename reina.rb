@@ -178,7 +178,13 @@ class App
   end
 
   def github_url
-    "https://github.com/#{project[:github]}"
+    if ENV['GITHUB_AUTH'].present?
+      `git config --global user.name "#{ENV['GITHUB_NAME']}"`
+      `git config --global user.email "#{ENV['GITHUB_EMAIL']}"`
+      "https://#{ENV['GITHUB_AUTH']}@github.com/#{project[:github]}"
+    else
+      "https://github.com/#{project[:github]}"
+    end
   end
 
   def remote_url

@@ -323,7 +323,8 @@ class GitHubController
 
   def authenticate!
     hash = OpenSSL::HMAC.hexdigest(hmac_digest, config[:webhook_secret], raw_payload)
-    raise SignatureError if "sha1=#{hash}" != signature
+    hash.prepend('sha1=')
+    raise SignatureError unless FastSecureCompare.compare(hash, signature)
   end
 
   def deploy_requested?

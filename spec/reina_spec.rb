@@ -53,7 +53,7 @@ RSpec.describe App do
       before { allow(Dir).to receive(:exists?).with('searchspot').and_return(false) }
 
       it 'clones the git folder' do
-        expect(Git).to receive(:clone).with('https://github.com/honeypotio/searchspot', 'searchspot')
+        expect(Git).to receive(:clone).with('git@github.com:honeypotio/searchspot', 'searchspot')
         fetch_repository
       end
     end
@@ -77,7 +77,7 @@ RSpec.describe App do
 
     context 'heroku is not in the repository \'s remotes' do
       it 'adds heroku to the remotes' do
-        expect(git).to receive(:add_remote).with(app.remote_name, "git@heroku.com:#{app.app_name}.git")
+        expect(git).to receive(:add_remote).with(app.remote_name, "https://git.heroku.com/#{app.app_name}.git")
         fetch_repository
       end
     end

@@ -15,6 +15,17 @@ hard to provide when it is private. So what we do
 is parsing ourselves the `app.json` manifest file
 while supporting anyway the hardcoded configuration mapping.
 
+Usage
+----
+
+As a bot, comment in an issue with: `reina: d "projectzero#nice-feature-branch"`.
+
+As a CLI application, execute `$ ruby reina.rb 1234 "projectzero#nice-feature-branch"`
+
+1234 should be basically the issue or PR number, while for all the app#branch tuples
+that are not specified in the command but present in your mapping, those will be
+deployed from the `master` branch.
+
 Setup
 -----
 

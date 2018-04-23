@@ -2,11 +2,23 @@ require 'bundler'
 require 'readline'
 Bundler.require
 
-unless File.exists?('./config.rb')
-  FileUtils.cp('./config.rb.sample', './config.rb')
+require './config.rb'
+
+if ENV['CONFIG'].present?
+  self.class.send(:remove_const, 'CONFIG')
+
+  CONFIG = ActiveSupport::HashWithIndifferentAccess.new(
+    JSON.parse(ENV['CONFIG'])
+  )
 end
 
-require './config.rb'
+if ENV['APPS'].present?
+  self.class.send(:remove_const, 'APPS')
+
+  APPS = ActiveSupport::HashWithIndifferentAccess.new(
+    JSON.parse(ENV['APPS'])
+  )
+end
 
 class App
   DEFAULT_REGION = 'eu'.freeze

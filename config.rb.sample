@@ -1,75 +1,63 @@
-CONFIG = if ENV['CONFIG'].present?
-  ActiveSupport::HashWithIndifferentAccess.new(
-    JSON.parse(ENV['CONFIG'])
-  )
-else
-  {
-    platform_api: ENV['HEROKU_PLATFORM_API'],
+CONFIG = {
+  platform_api: ENV['HEROKU_PLATFORM_API'],
 
-    github: {
-      webhook_secret: ENV['GITHUB_WEBHOOK_SECRET']
-    },
+  github: {
+    webhook_secret: ENV['GITHUB_WEBHOOK_SECRET']
+  },
 
-    app_name_prefix: ENV['APP_NAME_PREFIX']
-  }
-end
+  app_name_prefix: ENV['APP_NAME_PREFIX']
+}.freeze
 
-APPS = if ENV['APPS'].present?
-  ActiveSupport::HashWithIndifferentAccess.new(
-    JSON.parse(ENV['APPS'])
-  )
-else
-  {
-    searchspot: {
-      github: 'honeypotio/searchspot',
-      pipeline: 'searchspot',
-      config_vars: {
-        from: 'staging-searchspot',
-        except: ['BONSAI_URL'],
-        copy: [
-          { from: 'BONSAI_URL', to: 'ES_URL', append: ':443' }
-        ]
-      }
-    },
+APPS = {
+  searchspot: {
+    github: 'honeypotio/searchspot',
+    pipeline: 'searchspot',
+    config_vars: {
+      from: 'staging-searchspot',
+      except: ['BONSAI_URL'],
+      copy: [
+        { from: 'BONSAI_URL', to: 'ES_URL', append: ':443' }
+      ]
+    }
+  },
 
-    honeypot: {
-      github: 'honeypotio/honeypot',
-      pipeline: 'honeypot',
-      config_vars: {
-        from: 'replica-production-honeypot',
-        except: ['BUILDPACK_URL', 'DATABASE_URL', 'REDIS_URL', 'SEED_MODELS'],
-        copy: [
-          { from: 'searchspot#url', to: 'SEARCHSPOT_URL' },
-          { from: 'frontend#url', to: 'FRONTEND_HOST' }
-        ]
-      }
-    },
+  honeypot: {
+    github: 'honeypotio/honeypot',
+    pipeline: 'honeypot',
+    config_vars: {
+      from: 'replica-production-honeypot',
+      except: ['BUILDPACK_URL', 'DATABASE_URL', 'REDIS_URL', 'SEED_MODELS'],
+      copy: [
+        { from: 'searchspot#url', to: 'SEARCHSPOT_URL' },
+        { from: 'frontend#url', to: 'FRONTEND_HOST' }
+      ]
+    }
+  },
 
-    frontend: {
-      github: 'honeypotio/frontend',
-      pipeline: 'honeypot-frontend',
-      config_vars: {
-        from: 'staging-honeypot-frontend',
-        copy: [
-          { from: 'searchspot#url', to: 'SEARCHSPOT_URL' },
-          { from: 'honeypot#url',   to: 'API_BASE' }
-        ]
-      }
-    },
+  frontend: {
+    github: 'honeypotio/frontend',
+    pipeline: 'honeypot-frontend',
+    config_vars: {
+      from: 'staging-honeypot-frontend',
+      copy: [
+        { from: 'searchspot#url', to: 'SEARCHSPOT_URL' },
+        { from: 'honeypot#url',   to: 'API_BASE' }
+      ]
+    }
+  },
 
-    'admin-honeypot'.to_sym => {
-      github: 'honeypotio/admin_active',
-      pipeline: 'admin-honeypot',
-      parallel: false,
-      config_vars: {
-        from: 'staging-admin-honeypot',
-        copy: [
-          { from: 'honeypot#url',          to: 'APP_HOST' },
-          { from: 'honeypot#DATABASE_URL', to: 'DATABASE_URL' },
-          { from: 'honeypot#REDIS_URL',    to: 'REDIS_URL' },
-          { from: 'searchspot#url',        to: 'SEARCHSPOT_URL' }
-        ]
-      }
+  'admin-honeypot'.to_sym => {
+    github: 'honeypotio/admin_active',
+    pipeline: 'admin-honeypot',
+    parallel: false,
+    config_vars: {
+      from: 'staging-admin-honeypot',
+      copy: [
+        { from: 'honeypot#url',          to: 'APP_HOST' },
+        { from: 'honeypot#DATABASE_URL', to: 'DATABASE_URL' },
+        { from: 'honeypot#REDIS_URL',    to: 'REDIS_URL' },
+        { from: 'searchspot#url',        to: 'SEARCHSPOT_URL' }
+      ]
     }
   }
-end
+}.freeze

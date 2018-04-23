@@ -179,8 +179,6 @@ class App
 
   def github_url
     if ENV['GITHUB_AUTH'].present?
-      `git config --global user.name "#{ENV['GITHUB_NAME']}"`
-      `git config --global user.email "#{ENV['GITHUB_EMAIL']}"`
       "https://#{ENV['GITHUB_AUTH']}@github.com/#{project[:github]}"
     else
       "https://github.com/#{project[:github]}"
@@ -188,11 +186,20 @@ class App
   end
 
   def remote_url
-    "git@heroku.com:#{app_name}.git"
+    "https://git.heroku.com/#{app_name}.git"
   end
 end
 
 def main
+  if ENV['GITHUB_AUTH'].present?
+    `git config --global user.name "#{ENV['GITHUB_NAME']}"`
+    `git config --global user.email "#{ENV['GITHUB_EMAIL']}"`
+
+    unless File.exists?('.netrc')
+      File.write('.netrc', "machine git.heroku.com login #{ENV['GITHUB_EMAIL']} password #{ENV['HEROKU_AUTH_TOKEN']}")
+    end
+  end
+
   heroku = PlatformAPI.connect_oauth(CONFIG[:platform_api])
   abort 'Please provide $PLATFORM_API' if CONFIG[:platform_api].blank?
 
@@ -293,10 +300,11 @@ class GitHubController
   def dispatch(request)
     @request = request
 
-    raise UnsupportedEventError if event != 'issue_comment'.freeze
     authenticate!
 
-    deploy if deploy_requested?
+    return deploy if deploy_requested?
+
+    raise UnsupportedEventError if event != 'issue_comment'.freeze
   end
 
   private
@@ -309,9 +317,10 @@ class GitHubController
   end
 
   def deploy_requested?
-    return if action != 'created'.freeze
-    return unless comment_body.start_with?(CMD_TRIGGER)
+    action == 'created'.freeze && comment_body.start_with?(CMD_TRIGGER)
+  end
 
+  def deploy
     args = comment_body
       .lines[0]
       .split(CMD_TRIGGER)[1]
@@ -322,7 +331,8 @@ class GitHubController
 
     cmd = "ruby reina.rb #{args.join(' ')}"
     puts "Executing `#{cmd}` right now..."
-    system cmd
+
+    exec cmd
   end
 
   def signature

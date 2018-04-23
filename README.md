@@ -64,6 +64,8 @@ Finally you will need to make a JSON out of the two hash maps in `config.rb` and
 
 This is what eventually your environment variables should look like on Heroku: https://i.imgur.com/591bWv7.png
 
+As a bot, due to lack of Heroku CLI in the dyno, post deploy scripts won't be run.
+
 License
 -------
 

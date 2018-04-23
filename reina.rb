@@ -249,8 +249,10 @@ def main
     puts "#{app.name}: Cooldown..."
     sleep 7
 
-    # puts "#{app.name}: Executing postdeploy scripts..."
-    # app.execute_postdeploy_scripts
+    if ENV['DYNO'].blank?
+      puts "#{app.name}: Executing postdeploy scripts..."
+      app.execute_postdeploy_scripts
+    end
 
     puts "#{app.name}: Setting up dynos..."
     app.setup_dynos

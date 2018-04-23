@@ -231,8 +231,8 @@ def main
     puts "#{app.name}: Cooldown..."
     sleep 7
 
-    puts "#{app.name}: Executing postdeploy scripts..."
-    app.execute_postdeploy_scripts
+    # puts "#{app.name}: Executing postdeploy scripts..."
+    # app.execute_postdeploy_scripts
 
     puts "#{app.name}: Setting up dynos..."
     app.setup_dynos

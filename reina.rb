@@ -2,68 +2,28 @@ require 'bundler'
 require 'readline'
 Bundler.require
 
-CONFIG = {
-  platform_api: ENV['PLATFORM_API']
-}
+require './config.rb'
 
-APPS = {
-  searchspot: {
-    github: 'honeypotio/searchspot',
-    pipeline: 'searchspot',
-    config_vars: {
-      from: 'staging-searchspot',
-      except: ['BONSAI_URL'],
-      copy: [
-        { from: 'BONSAI_URL', to: 'ES_URL', append: ':443' }
-      ]
-    }
-  },
+if ENV['CONFIG'].present?
+  self.class.send(:remove_const, 'CONFIG')
 
-  honeypot: {
-    github: 'honeypotio/honeypot',
-    pipeline: 'honeypot',
-    config_vars: {
-      from: 'replica-production-honeypot',
-      except: ['BUILDPACK_URL', 'DATABASE_URL', 'REDIS_URL', 'SEED_MODELS'],
-      copy: [
-        { from: 'searchspot#url', to: 'SEARCHSPOT_URL' },
-        { from: 'frontend#url', to: 'FRONTEND_HOST' }
-      ]
-    }
-  },
+  CONFIG = ActiveSupport::HashWithIndifferentAccess.new(
+    JSON.parse(ENV['CONFIG'])
+  )
+end
 
-  frontend: {
-    github: 'honeypotio/frontend',
-    pipeline: 'honeypot-frontend',
-    config_vars: {
-      from: 'staging-honeypot-frontend',
-      copy: [
-        { from: 'searchspot#url', to: 'SEARCHSPOT_URL' },
-        { from: 'honeypot#url',   to: 'API_BASE' }
-      ]
-    }
-  },
+if ENV['APPS'].present?
+  self.class.send(:remove_const, 'APPS')
 
-  'admin-honeypot'.to_sym => {
-    github: 'honeypotio/admin_active',
-    pipeline: 'admin-honeypot',
-    parallel: false,
-    config_vars: {
-      from: 'staging-admin-honeypot',
-      copy: [
-        { from: 'honeypot#url',          to: 'APP_HOST' },
-        { from: 'honeypot#DATABASE_URL', to: 'DATABASE_URL' },
-        { from: 'honeypot#REDIS_URL',    to: 'REDIS_URL' },
-        { from: 'searchspot#url',        to: 'SEARCHSPOT_URL' }
-      ]
-    }
-  }
-}
+  APPS = ActiveSupport::HashWithIndifferentAccess.new(
+    JSON.parse(ENV['APPS'])
+  )
+end
 
 class App
-  DEFAULT_REGION = 'eu'
-  DEFAULT_STAGE  = 'staging'
-  DEFAULT_APP_NAME_PREFIX = 'reina-stg-'
+  DEFAULT_REGION = 'eu'.freeze
+  DEFAULT_STAGE  = 'staging'.freeze
+  DEFAULT_APP_NAME_PREFIX = CONFIG[:app_name_prefix].freeze
 
   attr_reader :heroku, :name, :project, :pr_number, :branch, :g
 
@@ -230,15 +190,24 @@ class App
   end
 
   def github_url
-    "https://github.com/#{project[:github]}"
+    "#{ENV.fetch('GITHUB_AUTH', 'git')}@github.com:#{project[:github]}"
   end
 
   def remote_url
-    "git@heroku.com:#{app_name}.git"
+    "https://git.heroku.com/#{app_name}.git"
   end
 end
 
 def main
+  if ENV['GITHUB_AUTH'].present?
+    `git config --global user.name "#{ENV['GITHUB_NAME']}"`
+    `git config --global user.email "#{ENV['GITHUB_EMAIL']}"`
+
+    unless File.exists?('.netrc')
+      File.write('.netrc', "machine git.heroku.com login #{ENV['GITHUB_EMAIL']} password #{ENV['HEROKU_AUTH_TOKEN']}")
+    end
+  end
+
   heroku = PlatformAPI.connect_oauth(CONFIG[:platform_api])
   abort 'Please provide $PLATFORM_API' if CONFIG[:platform_api].blank?
 
@@ -257,7 +226,12 @@ def main
   end
 
   existing_apps = heroku.app.list.map { |a| a['name'] } & apps.map(&:app_name)
-  if existing_apps.present?
+  if ENV['DYNO'].present?
+    existing_apps.each do |app|
+      puts "Deleting #{app}"
+      heroku.app.delete(app)
+    end
+  elsif existing_apps.present?
     puts 'The following apps already exist on Heroku:'
     puts existing_apps.map { |a| "- #{a}" }
     abort if Readline.readline('Type "OK" to delete the apps above: ', true).strip != 'OK'
@@ -283,8 +257,10 @@ def main
     puts "#{app.name}: Cooldown..."
     sleep 7
 
-    puts "#{app.name}: Executing postdeploy scripts..."
-    app.execute_postdeploy_scripts
+    if ENV['DYNO'].blank?
+      puts "#{app.name}: Executing postdeploy scripts..."
+      app.execute_postdeploy_scripts
+    end
 
     puts "#{app.name}: Setting up dynos..."
     app.setup_dynos
@@ -314,6 +290,126 @@ def main
   end
 
   puts "Done."
+end
+
+class SignatureError < StandardError
+  def message
+    'Signatures do not match'
+  end
+end
+
+class UnsupportedEventError < StandardError; end
+
+class GitHubController
+  CMD_TRIGGER = 'reina: d '.freeze
+
+  def initialize(config)
+    @config = config
+  end
+
+  def dispatch(request)
+    @request = request
+
+    authenticate!
+
+    return deploy if deploy_requested?
+
+    raise UnsupportedEventError if event != 'issue_comment'.freeze
+  end
+
+  private
+
+  attr_reader :config, :request
+
+  def authenticate!
+    hash = OpenSSL::HMAC.hexdigest(hmac_digest, config[:webhook_secret], raw_payload)
+    hash.prepend('sha1=')
+    raise SignatureError unless FastSecureCompare.compare(hash, signature)
+  end
+
+  def deploy_requested?
+    action == 'created'.freeze && comment_body.start_with?(CMD_TRIGGER)
+  end
+
+  def deploy
+    args = comment_body
+      .lines[0]
+      .split(CMD_TRIGGER)[1]
+      .split(' ')
+      .reject(&:blank?)
+      .map { |arg| '"' + arg + '"' }
+    args.prepend issue_number.to_s
+
+    cmd = "ruby reina.rb #{args.join(' ')}"
+    puts "Executing `#{cmd}` right now..."
+
+    exec cmd
+  end
+
+  def signature
+    request.env['HTTP_X_HUB_SIGNATURE']
+  end
+
+  def event
+    request.env['HTTP_X_GITHUB_EVENT']
+  end
+
+  def action
+    payload['action']
+  end
+
+  def issue_number
+    payload.dig('issue', 'number')
+  end
+
+  def comment_body
+    @_comment_body ||= payload.dig('comment', 'body').strip
+  end
+
+  def comment_author
+    payload.dig('comment', 'user', 'login')
+  end
+
+  def payload
+    return @_payload if @_payload.present?
+
+    @_payload ||= JSON.parse(raw_payload)
+  end
+
+  def raw_payload
+    return @_raw_payload if @_raw_payload.present?
+
+    request.body.rewind
+    @_raw_payload ||= request.body.read
+  end
+
+  def hmac_digest
+    @_hmac__digest ||= OpenSSL::Digest.new('sha1')
+  end
+end
+
+class Server < Sinatra::Base
+  set :show_exceptions, false
+
+  error SignatureError do
+    halt 403, env['sinatra.error'].message
+  end
+
+  error UnsupportedEventError do
+    halt 403, env['sinatra.error'].message
+  end
+
+  error Exception do
+    halt 500, 'Something bad happened... probably'
+  end
+
+  get '/' do
+    '<img src="https://i.imgur.com/UDxbOsz.png?1">'
+  end
+
+  post '/github' do
+    GitHubController.new(CONFIG[:github]).dispatch(request)
+  end
 end
 
 main if __FILE__ == 'reina.rb'

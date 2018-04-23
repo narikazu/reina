@@ -7,11 +7,7 @@ else
     platform_api: ENV['HEROKU_PLATFORM_API'],
 
     github: {
-      username: ENV['GITHUB_USERNAME'],
-      password: ENV['GITHUB_PASSWORD'],
-      webhook_secret: ENV['GITHUB_WEBHOOK_SECRET'],
-      repo: ENV['GITHUB_REPO'],
-      callback_url: ENV['DOMAIN_URL'] + '/github',
+      webhook_secret: ENV['GITHUB_WEBHOOK_SECRET']
     },
 
     app_name_prefix: ENV['APP_NAME_PREFIX']

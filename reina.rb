@@ -211,7 +211,12 @@ def main
   end
 
   existing_apps = heroku.app.list.map { |a| a['name'] } & apps.map(&:app_name)
-  if existing_apps.present?
+  if ENV['DYNO'].present?
+    existing_apps.each do |app|
+      puts "Deleting #{app}"
+      heroku.app.delete(app)
+    end
+  elsif existing_apps.present?
     puts 'The following apps already exist on Heroku:'
     puts existing_apps.map { |a| "- #{a}" }
     abort if Readline.readline('Type "OK" to delete the apps above: ', true).strip != 'OK'

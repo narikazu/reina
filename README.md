@@ -40,10 +40,10 @@ For what concerns the `CONFIG` hash map, this is how you can get the requested t
 - `$HEROKU_PLATFORM_API`
 
 ```sh
-$ heroku login`
-$ heroku keys:add ~/.ssh/id_rsa.pub`
-$ heroku plugins:install heroku-cli-oauth`
-$ heroku authorizations:create -d "Platform API token for Reina"`
+$ heroku login
+$ heroku keys:add ~/.ssh/id_rsa.pub
+$ heroku plugins:install heroku-cli-oauth
+$ heroku authorizations:create -d "Platform API token for Reina"
 ```
 
 - `$GITHUB_WEBHOOK_SECRET`

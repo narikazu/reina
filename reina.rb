@@ -351,7 +351,7 @@ class GitHubController
       user = client.user
       user.login
 
-      client.add_comment(repo_full_name, issue_number, reply(cmd))
+      client.add_comment(repo_full_name, issue_number, reply_message(cmd))
     end
   end
 
@@ -379,8 +379,8 @@ class GitHubController
     payload.dig('repository', 'full_name')
   end
 
-  def reply(cmd)
-    url = "https://#{CONFIG[:app_name_prefix]}#{repo_name}-#{issue_number}.herokuapp.com"
+  def reply_message(cmd)
+    url = ['https://', CONFIG[:app_name_prefix], repo_name, '-', issue_number, '.herokuapp.com'].join
     "`#{cmd}` executed.\n\nWill be deployed at #{url}"
   end
 

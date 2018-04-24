@@ -1,6 +1,6 @@
-require 'reina'
+require_relative 'spec_helper'
 
-RSpec.describe Reina::App do
+describe Reina::App do
   let(:heroku_app) { double('Heroku App') }
   let(:heroku_addon) { double('Heroku Addon') }
   let(:heroku_buildpack) { double('Heroku Buildpack Installation') }
@@ -32,7 +32,7 @@ RSpec.describe Reina::App do
 
     allow(app).to receive(:g).and_return(git)
 
-    f = File.read('spec/searchspot/app.json')
+    f = File.read('specs/searchspot/app.json')
     allow(File).to receive(:read).with('searchspot/app.json').and_return(f)
     allow(File).to receive(:exists?).with('searchspot/app.json').and_return(true)
   end

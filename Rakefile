@@ -1,7 +1,7 @@
 #! /usr/bin/env ruby
 require 'rake'
 
-task default: [ :build, :install, :test ]
+task default: %i(build install test)
 
 task :build do
   sh 'gem build reina.gemspec'
@@ -12,9 +12,7 @@ task :install do
 end
 
 task :test do
-  FileUtils.cd 'spec' do
-    Dir['./**/*_spec.rb'].each do |spec|
-      sh "rspec #{spec} --backtrace --color --format doc"
-    end
+  Dir['./specs/**/*_spec.rb'].each do |spec|
+    sh "rspec #{spec} --backtrace --color --format doc"
   end
 end

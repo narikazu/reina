@@ -323,7 +323,7 @@ class GitHubController
   def authenticate!
     hash = OpenSSL::HMAC.hexdigest(hmac_digest, config[:webhook_secret], raw_payload)
     hash.prepend('sha1=')
-    raise SignatureError unless ::FastSecureCompare.compare(hash, signature)
+    raise SignatureError unless Rack::Utils.secure_compare(hash, signature)
   end
 
   def deploy_requested?

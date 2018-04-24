@@ -2,7 +2,8 @@ CONFIG = {
   platform_api: ENV['HEROKU_PLATFORM_API'],
 
   github: {
-    webhook_secret: ENV['GITHUB_WEBHOOK_SECRET']
+    webhook_secret: ENV['GITHUB_WEBHOOK_SECRET'],
+    oauth_token: ENV['GITHUB_OAUTH_TOKEN']
   },
 
   app_name_prefix: ENV['APP_NAME_PREFIX']

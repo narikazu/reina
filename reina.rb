@@ -2,7 +2,7 @@ require 'bundler'
 require 'readline'
 Bundler.require
 
-require './config.rb'
+require './config.rb' if File.exists?('config.rb')
 
 if ENV['CONFIG'].present?
   self.class.send(:remove_const, 'CONFIG')
@@ -344,6 +344,14 @@ class GitHubController
     puts "Executing `#{cmd}` right now..."
 
     exec cmd
+
+    if oauth_token.present?
+      client = Octokit::Client.new(access_token: oauth_token)
+      user = client.user
+      user.login
+
+      client.add_comment(repo_full_name, issue_number, reply)
+    end
   end
 
   def signature
@@ -360,6 +368,19 @@ class GitHubController
 
   def issue_number
     payload.dig('issue', 'number')
+  end
+
+  def repo_name
+    payload.dig('repository', 'name')
+  end
+
+  def repo_full_name
+    payload.dig('repository', 'full_name')
+  end
+
+  def reply
+    url = "https://#{CONFIG[:app_name_prefix]}-#{repo_name}-#{issue_number}.herokuapp.com"
+    "`#{cmd}` executed\n\nWill be deployed at #{url}"
   end
 
   def comment_body
@@ -385,6 +406,10 @@ class GitHubController
 
   def hmac_digest
     @_hmac__digest ||= OpenSSL::Digest.new('sha1')
+  end
+
+  def oauth_token
+    @_oauth_token ||= CONFIG.dig(:github, :oauth_token)
   end
 end
 

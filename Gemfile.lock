@@ -6,12 +6,15 @@ GEM
       i18n (>= 0.7, < 2)
       minitest (~> 5.1)
       tzinfo (~> 1.1)
+    addressable (2.5.2)
+      public_suffix (>= 2.0.2, < 4.0)
     coderay (1.1.2)
     concurrent-ruby (1.0.5)
     diff-lcs (1.3)
-    dotenv (2.3.0)
     erubis (2.7.0)
     excon (0.62.0)
+    faraday (0.15.0)
+      multipart-post (>= 1.2, < 3)
     fast_secure_compare (1.0.1)
     git (1.3.0)
     heroics (0.0.24)
@@ -25,7 +28,10 @@ GEM
     minitest (5.11.3)
     moneta (0.8.1)
     multi_json (1.13.1)
+    multipart-post (2.0.0)
     mustermann (1.0.2)
+    octokit (4.8.0)
+      sawyer (~> 0.8.0, >= 0.5.3)
     parallel (1.12.1)
     platform-api (2.1.0)
       heroics (~> 0.0.23)
@@ -33,6 +39,7 @@ GEM
     pry (0.11.3)
       coderay (~> 1.1.0)
       method_source (~> 0.9.0)
+    public_suffix (3.0.2)
     puma (3.11.4)
     rack (2.0.4)
     rack-protection (2.0.1)
@@ -50,6 +57,9 @@ GEM
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.7.0)
     rspec-support (3.7.1)
+    sawyer (0.8.1)
+      addressable (>= 2.3.5, < 2.6)
+      faraday (~> 0.8, < 1.0)
     sinatra (2.0.1)
       mustermann (~> 1.0)
       rack (~> 2.0)
@@ -65,10 +75,10 @@ PLATFORMS
 
 DEPENDENCIES
   activesupport
-  dotenv
   excon
   fast_secure_compare
   git
+  octokit (~> 4.0)
   parallel
   platform-api
   pry

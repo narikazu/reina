@@ -8,6 +8,7 @@ gem 'parallel'
 gem 'sinatra', require: 'sinatra/base'
 gem 'puma'
 gem 'fast_secure_compare'
+gem 'octokit', '~> 4.0'
 
 gem 'rspec'
 gem 'pry'

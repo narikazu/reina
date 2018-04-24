@@ -1,5 +1,6 @@
 require 'bundler'
 require 'readline'
+require 'open3'
 Bundler.require
 
 if File.exists?('config.rb')
@@ -340,9 +341,10 @@ class GitHubController
     args.prepend issue_number.to_s
 
     cmd = "ruby reina.rb #{args.join(' ')}"
-    puts "Executing `#{cmd}` right now..."
-
-    exec cmd
+    fork do
+      puts "Executing `#{cmd}`..."
+      exec(cmd)
+    end
 
     if oauth_token.present?
       client = Octokit::Client.new(access_token: oauth_token)

@@ -11,7 +11,7 @@ Gem::Specification.new { |s|
   s.description = 'Either used as GitHub bot or a CLI tool, reina performs setup and deployment of your applications on Heroku.'
   s.license     = 'BSD-2-Clause'
 
-  s.files         = `git ls-files`.split("\n")
+  s.files         = Dir['lib/**/*.rb']
   s.executables   = `git ls-files -- bin/*`.split("\n").map { |f| File.basename(f) }
   s.require_paths = ['lib']
 }

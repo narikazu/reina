@@ -3,6 +3,8 @@ module Reina
     APP_COOLDOWN = 7 # seconds
 
     def initialize(params)
+      @params = params
+
       abort 'Please provide $PLATFORM_API' if CONFIG[:platform_api].blank?
       abort 'Given PR number should be greater than 0' if issue_number <= 0
 
@@ -60,6 +62,8 @@ module Reina
     end
 
     private
+
+    attr_reader :params
 
     def heroku
       @_heroku ||= PlatformAPI.connect_oauth(CONFIG[:platform_api])

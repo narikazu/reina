@@ -1,5 +1,10 @@
-require 'bundler'
-Bundler.require
+require 'excon'
+require 'platform-api'
+require 'git'
+require 'active_support/all'
+require 'parallel'
+require 'sinatra/base'
+require 'octokit'
 
 require 'reina/config'
 require 'reina/app'

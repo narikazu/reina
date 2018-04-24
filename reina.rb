@@ -2,23 +2,22 @@ require 'bundler'
 require 'readline'
 Bundler.require
 
-require './config.rb' if File.exists?('config.rb')
-
-if ENV['CONFIG'].present?
-  self.class.send(:remove_const, 'CONFIG')
-
-  CONFIG = ActiveSupport::HashWithIndifferentAccess.new(
-    JSON.parse(ENV['CONFIG'])
-  )
+if File.exists?('config.rb')
+  if ENV['CONFIG'].blank? || ENV['APPS'].blank?
+    require './config.rb'
+  else
+    self.class.send(:remove_const, 'CONFIG')
+    self.class.send(:remove_const, 'APPS')
+  end
 end
 
-if ENV['APPS'].present?
-  self.class.send(:remove_const, 'APPS')
+CONFIG = ActiveSupport::HashWithIndifferentAccess.new(
+  JSON.parse(ENV['CONFIG'])
+) if ENV['CONFIG'].present?
 
-  APPS = ActiveSupport::HashWithIndifferentAccess.new(
-    JSON.parse(ENV['APPS'])
-  )
-end
+APPS = ActiveSupport::HashWithIndifferentAccess.new(
+  JSON.parse(ENV['APPS'])
+) if ENV['APPS'].present?
 
 class App
   DEFAULT_REGION = 'eu'.freeze
@@ -324,7 +323,7 @@ class GitHubController
   def authenticate!
     hash = OpenSSL::HMAC.hexdigest(hmac_digest, config[:webhook_secret], raw_payload)
     hash.prepend('sha1=')
-    raise SignatureError unless FastSecureCompare.compare(hash, signature)
+    raise SignatureError unless ::FastSecureCompare.compare(hash, signature)
   end
 
   def deploy_requested?

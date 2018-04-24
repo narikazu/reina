@@ -74,7 +74,7 @@ Then you need to provide the following environment variables from Heroku:
 Finally you will need to make a JSON out of the two hash maps in `config.rb` and copy them respectively to the environment variables called `APPS` and `CONFIG`.
 
 If you also want reina to add reply to your request, create an API key to your account (preferabily the one dedicated to the bot you have created before)
-with `write:discussion` permission. [Instructions here](https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/).
+with `write:discussion` and `repos` permissions. [Instructions here](https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/).
 Once the key has been generated, set it as `$GITHUB_OAUTH_TOKEN` (or add it to the `config.rb` file).
 
 This is what eventually your environment variables should look like on Heroku: https://i.imgur.com/591bWv7.png

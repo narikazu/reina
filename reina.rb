@@ -343,17 +343,15 @@ class GitHubController
     args.prepend issue_number.to_s
 
     cmd = "ruby reina.rb #{args.join(' ')}"
-    fork do
-      puts "Executing `#{cmd}`..."
-      exec(cmd)
-    end
+    puts "Executing `#{cmd}` right now..."
+    fork { exec(cmd) }
 
-    if oauth_token.present?
-      client = Octokit::Client.new(access_token: oauth_token)
+    if config[:oauth_token].present?
+      client = Octokit::Client.new(access_token: config[:oauth_token])
       user = client.user
       user.login
 
-      client.add_comment(repo_full_name, issue_number, reply)
+      client.add_comment(repo_full_name, issue_number, reply(cmd))
     end
   end
 
@@ -381,9 +379,9 @@ class GitHubController
     payload.dig('repository', 'full_name')
   end
 
-  def reply
-    url = "https://#{CONFIG[:app_name_prefix]}-#{repo_name}-#{issue_number}.herokuapp.com"
-    "`#{cmd}` executed\n\nWill be deployed at #{url}"
+  def reply(cmd)
+    url = "https://#{CONFIG[:app_name_prefix]}#{repo_name}-#{issue_number}.herokuapp.com"
+    "`#{cmd}` executed.\n\nWill be deployed at #{url}"
   end
 
   def comment_body
@@ -410,10 +408,6 @@ class GitHubController
   def hmac_digest
     @_hmac__digest ||= OpenSSL::Digest.new('sha1')
   end
-
-  def oauth_token
-    @_oauth_token ||= CONFIG.dig(:github, :oauth_token)
-  end
 end
 
 class Server < Sinatra::Base
@@ -437,6 +431,8 @@ class Server < Sinatra::Base
 
   post '/github' do
     GitHubController.new(CONFIG[:github]).dispatch(request)
+    status 202
+    body ''
   end
 end
 

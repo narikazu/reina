@@ -1,2 +1,2 @@
-require './reina.rb'
-run Server
+require 'reina'
+run Reina::Server

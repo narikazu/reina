@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+require 'reina'
+require 'readline'
+
+reina = Reina::Controller.new(ARGV.dup)
+
+if reina.existing_apps.present?
+  puts 'The following apps already exist on Heroku:'
+  puts reina.existing_apps.map { |a| "- #{a}" }
+  abort if Readline.readline('Type "OK" to delete the apps above: ', true).strip != 'OK'
+
+  reina.delete_existing_apps!
+end
+
+deploy_parallel_apps!
+deploy_non_parallel_apps!
+
+puts 'Done.'

@@ -190,7 +190,9 @@ class App
   end
 
   def github_url
-    "#{ENV.fetch('GITHUB_AUTH', 'git')}@github.com:#{project[:github]}"
+    return "https://github.com/#{project[:github]}" if ENV['GITHUB_AUTH'].blank?
+
+    "https://#{ENV['GITHUB_AUTH']}@github.com/#{project[:github]}"
   end
 
   def remote_url

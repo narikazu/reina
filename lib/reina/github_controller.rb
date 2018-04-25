@@ -47,21 +47,32 @@ module Reina
         .reject(&:blank?)
         .map { |arg| '"' + arg + '"' })
 
+      should_comment = config[:oauth_token].present?
+      reply = ->(msg) { octokit.add_comment(repo_full_name, issue_number, msg) }
+      url = [
+        'https://', CONFIG[:app_name_prefix], repo_name, '-', issue_number, '.herokuapp.com'
+      ].join
+
       fork do
+        reply.call('Starting deployments...') if should_comment
+
         reina = Controller.new(params)
         reina.create_netrc if reina.heroku?
         reina.delete_existing_apps!
         reina.deploy_parallel_apps!
         reina.deploy_non_parallel_apps!
-      end
 
-      if config[:oauth_token].present?
-        client = Octokit::Client.new(access_token: config[:oauth_token])
-        user = client.user
-        user.login
-
-        client.add_comment(repo_full_name, issue_number, reply_message)
+        reply.call("Deployment finished. Live at #{url}.") if should_comment
       end
+    end
+
+    def octokit
+      return @_octokit if @_octokit.present?
+
+      client = Octokit::Client.new(access_token: config[:oauth_token])
+      user = client.user
+      user.login
+      @_octokit = client
     end
 
     def signature
@@ -86,11 +97,6 @@ module Reina
 
     def repo_full_name
       payload.dig('repository', 'full_name')
-    end
-
-    def reply_message
-      url = ['https://', CONFIG[:app_name_prefix], repo_name, '-', issue_number, '.herokuapp.com'].join
-      "Deployment started at #{url}..."
     end
 
     def comment_body

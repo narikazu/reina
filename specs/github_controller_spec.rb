@@ -44,7 +44,7 @@ describe Reina::GitHubController do
         end
         let(:octokit) { double('Octokit', user: user) }
         let(:user) { double('Octokit', login: true) }
-        let(:msg) { 'Deployment started at https://reina-stg-sample-1234.herokuapp.com...' }
+        let(:url) { 'https://reina-stg-sample-1234.herokuapp.com' }
 
         it 'requests a deploy' do
           expect(instance).to receive(:deploy!)
@@ -65,7 +65,8 @@ describe Reina::GitHubController do
           allow(Octokit::Client)
             .to receive(:new).with(access_token: 'token').and_return(octokit)
           expect(user).to receive(:login)
-          expect(octokit).to receive(:add_comment).with('org/sample', 1234, msg)
+          expect(octokit).to receive(:add_comment).with('org/sample', 1234, 'Starting deployments...')
+          expect(octokit).to receive(:add_comment).with('org/sample', 1234, "Deployment finished. Live at #{url}.")
 
           dispatch
         end

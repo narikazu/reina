@@ -90,7 +90,7 @@ module Reina
 
     def reply_message
       url = ['https://', CONFIG[:app_name_prefix], repo_name, '-', issue_number, '.herokuapp.com'].join
-      "Deployed started at #{url}..."
+      "Deployment started at #{url}..."
     end
 
     def comment_body

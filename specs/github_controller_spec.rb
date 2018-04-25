@@ -44,7 +44,7 @@ describe Reina::GitHubController do
         end
         let(:octokit) { double('Octokit', user: user) }
         let(:user) { double('Octokit', login: true) }
-        let(:msg) { 'Deployed started at https://reina-stg-sample-1234.herokuapp.com...' }
+        let(:msg) { 'Deployment started at https://reina-stg-sample-1234.herokuapp.com...' }
 
         it 'requests a deploy' do
           expect(instance).to receive(:deploy!)
@@ -77,7 +77,7 @@ describe Reina::GitHubController do
 
         before { allow(instance).to receive(:authenticate!) }
 
-        it 'close the request silently' do
+        it 'close the HTTP request silently' do
           expect(instance).to_not receive(:deploy!)
           dispatch
         end

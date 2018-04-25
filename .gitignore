@@ -1,5 +1,5 @@
 *.gem
-config.rb
+/config.rb
 /searchspot
 /honeypot
 /admin-honeypot

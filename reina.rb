@@ -1,24 +1,24 @@
 require 'bundler'
 require 'readline'
+require 'open3'
 Bundler.require
 
-require './config.rb'
-
-if ENV['CONFIG'].present?
-  self.class.send(:remove_const, 'CONFIG')
-
-  CONFIG = ActiveSupport::HashWithIndifferentAccess.new(
-    JSON.parse(ENV['CONFIG'])
-  )
+if File.exists?('config.rb')
+  if ENV['CONFIG'].blank? || ENV['APPS'].blank?
+    require './config.rb'
+  else
+    self.class.send(:remove_const, 'CONFIG')
+    self.class.send(:remove_const, 'APPS')
+  end
 end
 
-if ENV['APPS'].present?
-  self.class.send(:remove_const, 'APPS')
+CONFIG = ActiveSupport::HashWithIndifferentAccess.new(
+  JSON.parse(ENV['CONFIG'])
+) if ENV['CONFIG'].present?
 
-  APPS = ActiveSupport::HashWithIndifferentAccess.new(
-    JSON.parse(ENV['APPS'])
-  )
-end
+APPS = ActiveSupport::HashWithIndifferentAccess.new(
+  JSON.parse(ENV['APPS'])
+) if ENV['APPS'].present?
 
 class App
   DEFAULT_REGION = 'eu'.freeze
@@ -190,7 +190,9 @@ class App
   end
 
   def github_url
-    "#{ENV.fetch('GITHUB_AUTH', 'git')}@github.com:#{project[:github]}"
+    return "https://github.com/#{project[:github]}" if ENV['GITHUB_AUTH'].blank?
+
+    "https://#{ENV['GITHUB_AUTH']}@github.com/#{project[:github]}"
   end
 
   def remote_url
@@ -324,7 +326,7 @@ class GitHubController
   def authenticate!
     hash = OpenSSL::HMAC.hexdigest(hmac_digest, config[:webhook_secret], raw_payload)
     hash.prepend('sha1=')
-    raise SignatureError unless FastSecureCompare.compare(hash, signature)
+    raise SignatureError unless Rack::Utils.secure_compare(hash, signature)
   end
 
   def deploy_requested?
@@ -342,8 +344,15 @@ class GitHubController
 
     cmd = "ruby reina.rb #{args.join(' ')}"
     puts "Executing `#{cmd}` right now..."
+    fork { exec(cmd) }
 
-    exec cmd
+    if config[:oauth_token].present?
+      client = Octokit::Client.new(access_token: config[:oauth_token])
+      user = client.user
+      user.login
+
+      client.add_comment(repo_full_name, issue_number, reply_message(cmd))
+    end
   end
 
   def signature
@@ -360,6 +369,19 @@ class GitHubController
 
   def issue_number
     payload.dig('issue', 'number')
+  end
+
+  def repo_name
+    payload.dig('repository', 'name')
+  end
+
+  def repo_full_name
+    payload.dig('repository', 'full_name')
+  end
+
+  def reply_message(cmd)
+    url = ['https://', CONFIG[:app_name_prefix], repo_name, '-', issue_number, '.herokuapp.com'].join
+    "`#{cmd}` executed.\n\nWill be deployed at #{url}"
   end
 
   def comment_body
@@ -409,6 +431,8 @@ class Server < Sinatra::Base
 
   post '/github' do
     GitHubController.new(CONFIG[:github]).dispatch(request)
+    status 202
+    body ''
   end
 end
 

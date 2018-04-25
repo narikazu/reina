@@ -29,7 +29,7 @@ module Reina
     def deploy_parallel_apps!
       Parallel.each(apps.select(&:parallel?)) do |app|
         begin
-          process_app.call(app)
+          deploy!(app)
         rescue Git::GitExecuteError => e
           puts "#{app.name}: #{e.message}"
         rescue Exception => e
@@ -41,7 +41,7 @@ module Reina
     def deploy_non_parallel_apps!
       apps.reject(&:parallel?).each do |app|
         begin
-          process_app.call(app)
+          deploy!(app)
         rescue Git::GitExecuteError => e
           puts "#{app.name}: #{e.message}"
         rescue Exception => e
@@ -80,7 +80,7 @@ module Reina
     def apps
       @_apps ||= APPS.map do |name, project|
         branch = branches[name.to_s].presence || 'master'
-        App.new(heroku, name, project, pr_number, branch)
+        App.new(heroku, name, project, issue_number, branch)
       end
     end
 
@@ -102,7 +102,7 @@ module Reina
       app.deploy
 
       puts "#{app.name}: Cooldown..."
-      sleep APP_COOLDOWN
+      Kernel.sleep APP_COOLDOWN
 
       unless heroku?
         puts "#{app.name}: Executing postdeploy scripts..."

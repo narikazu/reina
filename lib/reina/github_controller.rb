@@ -17,11 +17,11 @@ module Reina
     def dispatch(request)
       @request = request
 
+      raise UnsupportedEventError if event != 'issue_comment'.freeze
+
       authenticate!
 
-      return deploy if deploy_requested?
-
-      raise UnsupportedEventError if event != 'issue_comment'.freeze
+      return deploy! if deploy_requested?
     end
 
     private
@@ -38,7 +38,7 @@ module Reina
       action == 'created'.freeze && comment_body.start_with?(CMD_TRIGGER)
     end
 
-    def deploy
+    def deploy!
       params = [issue_number]
       params.concat(comment_body
         .lines[0]
@@ -60,7 +60,7 @@ module Reina
         user = client.user
         user.login
 
-        client.add_comment(repo_full_name, issue_number, reply_message(cmd))
+        client.add_comment(repo_full_name, issue_number, reply_message)
       end
     end
 
@@ -88,9 +88,9 @@ module Reina
       payload.dig('repository', 'full_name')
     end
 
-    def reply_message(cmd)
+    def reply_message
       url = ['https://', CONFIG[:app_name_prefix], repo_name, '-', issue_number, '.herokuapp.com'].join
-      "`#{cmd}` executed.\n\nWill be deployed at #{url}"
+      "Deployed started at #{url}..."
     end
 
     def comment_body

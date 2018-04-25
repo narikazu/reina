@@ -13,6 +13,7 @@ describe Reina::Controller do
 
   before do
     allow(instance).to receive(:apps).and_return(apps)
+    allow(instance).to receive(:`)
   end
 
   describe '#create_netrc' do

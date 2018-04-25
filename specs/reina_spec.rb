@@ -1,6 +1,6 @@
-require_relative '../reina.rb'
+require_relative 'spec_helper'
 
-RSpec.describe App do
+describe Reina::App do
   let(:heroku_app) { double('Heroku App') }
   let(:heroku_addon) { double('Heroku Addon') }
   let(:heroku_buildpack) { double('Heroku Buildpack Installation') }
@@ -23,7 +23,7 @@ RSpec.describe App do
 
   let(:pr_number) { 1234 }
   let(:branch) { 'features/hibike' }
-  let(:app) { App.new(heroku, :searchspot, APPS[:searchspot], pr_number, branch) }
+  let(:app) { described_class.new(heroku, :searchspot, APPS[:searchspot], pr_number, branch) }
 
   before do
     allow(PlatformAPI).to receive(:connect_oauth).and_return(heroku)
@@ -32,7 +32,7 @@ RSpec.describe App do
 
     allow(app).to receive(:g).and_return(git)
 
-    f = File.read('spec/searchspot/app.json')
+    f = File.read('specs/searchspot/app.json')
     allow(File).to receive(:read).with('searchspot/app.json').and_return(f)
     allow(File).to receive(:exists?).with('searchspot/app.json').and_return(true)
   end
@@ -53,7 +53,7 @@ RSpec.describe App do
       before { allow(Dir).to receive(:exists?).with('searchspot').and_return(false) }
 
       it 'clones the git folder' do
-        expect(Git).to receive(:clone).with('git@github.com:honeypotio/searchspot', 'searchspot')
+        expect(Git).to receive(:clone).with('https://github.com/honeypotio/searchspot', 'searchspot')
         fetch_repository
       end
     end

@@ -4,14 +4,14 @@ module Reina
     DEFAULT_STAGE  = 'staging'.freeze
     DEFAULT_APP_NAME_PREFIX = CONFIG[:app_name_prefix].freeze
 
-    attr_reader :heroku, :name, :project, :pr_number, :branch, :g
+    attr_reader :heroku, :name, :project, :issue_number, :branch, :g
 
-    def initialize(heroku, name, project, pr_number, branch)
-      @heroku    = heroku
-      @name      = name.to_s
-      @project   = project
-      @pr_number = pr_number
-      @branch    = branch
+    def initialize(heroku, name, project, issue_number, branch)
+      @heroku       = heroku
+      @name         = name.to_s
+      @project      = project
+      @issue_number = issue_number
+      @branch       = branch
     end
 
     def fetch_repository
@@ -167,7 +167,7 @@ module Reina
     end
 
     def app_name_for(s)
-      "#{DEFAULT_APP_NAME_PREFIX}#{s}-#{pr_number}"
+      "#{DEFAULT_APP_NAME_PREFIX}#{s}-#{issue_number}"
     end
 
     def github_url

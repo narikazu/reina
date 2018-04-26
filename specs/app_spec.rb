@@ -21,9 +21,9 @@ describe Reina::App do
   end
   let(:git) { double('Git', pull: true, remotes: [], add_remote: true, branch: true, checkout: true) }
 
-  let(:pr_number) { 1234 }
+  let(:issue_number) { 1234 }
   let(:branch) { 'features/hibike' }
-  let(:app) { described_class.new(heroku, :searchspot, APPS[:searchspot], pr_number, branch) }
+  let(:app) { described_class.new(heroku, :searchspot, APPS[:searchspot], issue_number, branch) }
 
   before do
     allow(PlatformAPI).to receive(:connect_oauth).and_return(heroku)

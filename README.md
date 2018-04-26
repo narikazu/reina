@@ -52,7 +52,7 @@ This is only needed if you want to run reina as a bot.
 
 From your repository's settings, go to "Hooks" and click the "Add webhook" button.
 You will need to set as URL `https://<your_reina_instance_app_name>.herokuapp.com/github`
-and give just `issue_comment` as permission.
+and grant `issues` and `issue_comment` as permissions.
 Set a random and secure secret and share it between the form end the environment variable
 we're here talking about.
 

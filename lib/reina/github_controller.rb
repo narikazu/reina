@@ -96,6 +96,8 @@ module Reina
     end
 
     def params
+      return [issue_number] if comment_body.blank?
+
       [
         issue_number,
         comment_body
@@ -132,7 +134,7 @@ module Reina
     end
 
     def comment_body
-      payload.dig('comment', 'body').strip
+      payload.dig('comment', 'body')&.strip.to_s
     end
 
     def comment_author

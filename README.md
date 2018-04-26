@@ -1,19 +1,13 @@
 Reina - 響け！
 -------------
 
-Bot to handle deploys and orchestrations
-of feature stagings hosted on Heroku.
-
-Currently in PoC development phase.
-
-It works either as a CLI tool and as a bot having a
-server running on Heroku which is hit by GitHub webhooks.
+GitHub bot and CLI application to handle deployments and
+orchestrations of feature stagings on Heroku.
 
 We won't use Heroku's App Setup as it seems to require
 the direct URL to the tarball of a repository which is
-hard to provide when it is private. So what we do
-is parsing ourselves the `app.json` manifest file
-while supporting anyway the hardcoded configuration mapping.
+hard to provide when it is private. So we do pretty much
+everything manually in the code base.
 
 Usage
 ----
@@ -66,7 +60,7 @@ been used by someone on Heroku.
 As a bot
 --------
 
-First of all, follow the instructions above.
+First of all, follow the instructions above, then host the bot as a rack application on Heroku.
 
 Then you need to provide the following environment variables from Heroku:
 - `GITHUB_AUTH` which is your login data to GitHub in the form of `username:password`

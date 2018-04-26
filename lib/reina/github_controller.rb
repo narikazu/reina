@@ -9,6 +9,7 @@ module Reina
 
   class GitHubController
     CMD_TRIGGER = 'reina: d '.freeze
+    EVENTS = %w(issues issue_comment).freeze
 
     def initialize(config)
       @config = config
@@ -17,11 +18,15 @@ module Reina
     def dispatch(request)
       @request = request
 
-      raise UnsupportedEventError if event != 'issue_comment'.freeze
+      raise UnsupportedEventError unless EVENTS.include?(event)
 
       authenticate!
 
-      return deploy! if deploy_requested?
+      if deploy_requested?
+        deploy!
+      elsif issue_closed?
+        destroy!
+      end
     end
 
     def deployed_url
@@ -44,15 +49,12 @@ module Reina
       action == 'created'.freeze && comment_body.start_with?(CMD_TRIGGER)
     end
 
-    def deploy!
-      params = [issue_number]
-      params.concat(comment_body
-        .lines[0]
-        .split(CMD_TRIGGER)[1]
-        .split(' ')
-        .reject(&:blank?)
-        .map { |arg| '"' + arg + '"' })
+    def issue_closed?
+      action == 'closed'.freeze
+    end
 
+    def deploy!
+      reina = Controller.new(params)
       should_comment = config[:oauth_token].present?
       reply = ->(msg) { octokit.add_comment(repo_full_name, issue_number, msg) }
       url = deployed_url
@@ -60,13 +62,27 @@ module Reina
       fork do
         reply.call('Starting deployments...') if should_comment
 
-        reina = Controller.new(params)
         reina.create_netrc if reina.heroku?
         reina.delete_existing_apps!
         reina.deploy_parallel_apps!
         reina.deploy_non_parallel_apps!
 
         reply.call("Deployment finished. Live at #{url}.") if should_comment
+      end
+    end
+
+    def destroy!
+      reina = Controller.new(params)
+      return if reina.existing_apps.empty?
+
+      should_comment = config[:oauth_token].present?
+      reply = ->(msg) { octokit.add_comment(repo_full_name, issue_number, msg) }
+
+      fork do
+        reina.create_netrc if reina.heroku?
+        reina.delete_existing_apps!
+
+        reply.call('All the staging apps related to this issue have been deleted.') if should_comment
       end
     end
 
@@ -77,6 +93,20 @@ module Reina
       user = client.user
       user.login
       @_octokit = client
+    end
+
+    def params
+      return [issue_number] if comment_body.blank?
+
+      [
+        issue_number,
+        comment_body
+          .lines[0]
+          .split(CMD_TRIGGER)[1]
+          .split(' ')
+          .reject(&:blank?)
+          .map { |arg| '"' + arg + '"' }
+      ].flatten
     end
 
     def signature
@@ -104,7 +134,7 @@ module Reina
     end
 
     def comment_body
-      payload.dig('comment', 'body').strip
+      payload.dig('comment', 'body')&.strip.to_s
     end
 
     def comment_author

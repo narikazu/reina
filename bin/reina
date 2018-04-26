@@ -12,7 +12,9 @@ if reina.existing_apps.present?
   reina.delete_existing_apps!
 end
 
-deploy_parallel_apps!
-deploy_non_parallel_apps!
+puts 'Starting deployments...'
 
-puts 'Done.'
+reina.deploy_parallel_apps!
+reina.deploy_non_parallel_apps!
+
+puts "Deployment finished. Live at #{reina.deployed_url}."

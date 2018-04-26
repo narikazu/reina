@@ -24,6 +24,12 @@ module Reina
       return deploy! if deploy_requested?
     end
 
+    def deployed_url
+      [
+        'https://', CONFIG[:app_name_prefix], repo_name, '-', issue_number, '.herokuapp.com'
+      ].join
+    end
+
     private
 
     attr_reader :config, :request
@@ -49,9 +55,7 @@ module Reina
 
       should_comment = config[:oauth_token].present?
       reply = ->(msg) { octokit.add_comment(repo_full_name, issue_number, msg) }
-      url = [
-        'https://', CONFIG[:app_name_prefix], repo_name, '-', issue_number, '.herokuapp.com'
-      ].join
+      url = deployed_url
 
       fork do
         reply.call('Starting deployments...') if should_comment

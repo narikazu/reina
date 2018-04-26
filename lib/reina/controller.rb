@@ -57,6 +57,10 @@ module Reina
       end
     end
 
+    def existing_apps
+      @_existing_apps ||= heroku.app.list.map { |a| a['name'] } & apps.map(&:app_name)
+    end
+
     def heroku?
       ENV['DYNO'].present?
     end
@@ -82,10 +86,6 @@ module Reina
         branch = branches[name.to_s].presence || 'master'
         App.new(heroku, name, project, issue_number, branch)
       end
-    end
-
-    def existing_apps
-      @_existing_apps ||= heroku.app.list.map { |a| a['name'] } & apps.map(&:app_name)
     end
 
     def deploy!(app)

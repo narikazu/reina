@@ -93,6 +93,7 @@ module Reina
       config_vars['APP_NAME']        = app_name
       config_vars['HEROKU_APP_NAME'] = app_name
       config_vars['DOMAIN_NAME']     = domain_name
+      config_vars['COOKIE_DOMAIN']   = '.herokuapp.com'.freeze
 
       app_json.fetch('env', {}).each do |key, hash|
         next if hash['value'].blank? || config_vars[key].present?

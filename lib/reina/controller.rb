@@ -104,10 +104,8 @@ module Reina
       puts "#{app.name}: Cooldown..."
       Kernel.sleep APP_COOLDOWN
 
-      unless heroku?
-        puts "#{app.name}: Executing postdeploy scripts..."
-        app.execute_postdeploy_scripts
-      end
+      puts "#{app.name}: Executing postdeploy scripts..."
+      app.execute_postdeploy_scripts
 
       puts "#{app.name}: Setting up dynos..."
       app.setup_dynos

@@ -5,5 +5,9 @@
       "quantity": 1,
       "size": "free"
     }
-  }
+  },
+  "buildpacks": [
+    { "url": "https://github.com/heroku/heroku-buildpack-ruby" },
+    { "url": "https://github.com/heroku/heroku-buildpack-cli" }
+  ]
 }

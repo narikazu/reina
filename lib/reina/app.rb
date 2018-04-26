@@ -128,6 +128,8 @@ module Reina
       script = app_json.dig('scripts', 'postdeploy')
       return if script.blank?
 
+      return if heroku? && ENV['HEROKU_AUTH_TOKEN'].blank?
+
       `heroku run #{script} --app #{app_name}`
     end
 
@@ -178,6 +180,10 @@ module Reina
 
     def remote_url
       "https://git.heroku.com/#{app_name}.git"
+    end
+
+    def heroku?
+      ENV['DYNO'].present?
     end
   end
 end

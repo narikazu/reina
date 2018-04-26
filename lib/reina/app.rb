@@ -78,7 +78,8 @@ module Reina
 
           source, var = h[:from].split('#')
           source_app_name = app_name_for(source)
-          if var == 'url'
+
+          if var == 'url'.freeze
             config_vars[h[:to]] = "https://#{domain_name_for(source_app_name)}"
           else
             vars_cache[source_app_name] ||= heroku.config_var.info_for_app(source_app_name)
@@ -94,7 +95,8 @@ module Reina
       config_vars['DOMAIN_NAME']     = domain_name
 
       app_json.fetch('env', {}).each do |key, hash|
-        config_vars[key] = hash['value'] if hash['value'].present?
+        next if hash['value'].blank? || config_vars[key].present?
+        config_vars[key] = hash['value']
       end
 
       heroku.config_var.update(app_name, config_vars)

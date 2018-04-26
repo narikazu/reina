@@ -18,13 +18,15 @@ while supporting anyway the hardcoded configuration mapping.
 Usage
 ----
 
-As a bot, comment in an issue with: `reina: d projectzero#nice-feature-branch`.
+When used as a bot, just leave a comment in an issue like `reina: d projectzero#nice-feature-branch`.
+Reina will handle all the cleaning once you eventually close it. By executing once again the command,
+the stagings will be replaced with a fresh new deploy.
 
-As a CLI application, execute `$ ruby reina.rb 1234 "projectzero#nice-feature-branch"`
+As a CLI application, execute `$ ruby reina.rb 1234 "projectzero#nice-feature-branch"`.
 
-1234 should be basically the issue or PR number, while for all the app#branch tuples
-that are not specified in the command but present in your mapping, those will be
-deployed from the `master` branch.
+`1234` would basically be the issue number, while for all the `app#branch` tuples
+that are not explicitized in the command but present in your mapping (`config.rb`),
+those will be deployed from the `master` branch.
 
 Setup
 -----
@@ -58,7 +60,8 @@ we're here talking about.
 
 - `$APP_NAME_PREFIX`
 
-Everything is gonna be fine as app namespace, given it's free on Heroku.
+Everything is gonna be fine as app namespace, unless the eventual generated app name has already
+been used by someone on Heroku.
 
 As a bot
 --------
@@ -71,15 +74,12 @@ Then you need to provide the following environment variables from Heroku:
 - `GITHUB_EMAIL` which is your GitHub user's email
 - `HEROKU_API_KEY` which is the output of `$ heroku auth:token`
 
-Finally you will need to make a JSON out of the two hash maps in `config.rb` and copy them respectively to the environment variables called `APPS` and `CONFIG`.
+Finally you will need to make a JSON out of the two hash maps in `config.rb` and copy them respectively to the environment variables called `APPS` and `CONFIG` (typing `require 'json'; puts APPS; puts CONFIG` should be enough to get what you need).
 
-If you also want reina to add reply to your request, create an API key to your account (preferabily the one dedicated to the bot you have created before)
-with `write:discussion` and `repos` permissions. [Instructions here](https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/).
-Once the key has been generated, set it as `$GITHUB_OAUTH_TOKEN` (or add it to the `config.rb` file).
+If you also want Reina to add replies to your request, create an API key for your account (preferabily the one dedicated to the bot you have created before) with `write:discussion` and `repos` permissions. [Instructions here](https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/).
+Once the key has been generated, set it as `GITHUB_OAUTH_TOKEN` (or add it to the `config.rb` file).
 
 This is what eventually your environment variables should look like on Heroku: https://i.imgur.com/591bWv7.png
-
-As a bot, due to lack of Heroku CLI in the dyno, post deploy scripts won't be run.
 
 License
 -------

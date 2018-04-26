@@ -22,7 +22,7 @@ module Reina
 
       File.write(
         '.netrc',
-        "machine git.heroku.com login #{ENV['GITHUB_EMAIL']} password #{ENV['HEROKU_AUTH_TOKEN']}"
+        "machine git.heroku.com login #{ENV['GITHUB_EMAIL']} password #{ENV['HEROKU_API_KEY']}"
       )
     end
 

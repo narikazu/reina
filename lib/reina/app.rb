@@ -128,7 +128,7 @@ module Reina
       script = app_json.dig('scripts', 'postdeploy')
       return if script.blank?
 
-      return if heroku? && ENV['HEROKU_AUTH_TOKEN'].blank?
+      return if heroku? && ENV['HEROKU_API_KEY'].blank?
 
       `heroku run #{script} --app #{app_name}`
     end

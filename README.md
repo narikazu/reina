@@ -18,7 +18,7 @@ while supporting anyway the hardcoded configuration mapping.
 Usage
 ----
 
-As a bot, comment in an issue with: `reina: d "projectzero#nice-feature-branch"`.
+As a bot, comment in an issue with: `reina: d projectzero#nice-feature-branch`.
 
 As a CLI application, execute `$ ruby reina.rb 1234 "projectzero#nice-feature-branch"`
 

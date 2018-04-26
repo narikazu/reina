@@ -24,7 +24,7 @@ describe Reina::Controller do
         'GITHUB_AUTH' => 'gh_auth',
         'GITHUB_NAME' => 'gh_name',
         'GITHUB_EMAIL' => 'gh_email',
-        'HEROKU_AUTH_TOKEN' => 'heroku_auth'
+        'HEROKU_API_KEY' => 'heroku_auth'
       })
     end
 

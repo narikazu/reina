@@ -93,6 +93,7 @@ module Reina
       config_vars['APP_NAME']        = app_name
       config_vars['HEROKU_APP_NAME'] = app_name
       config_vars['DOMAIN_NAME']     = domain_name
+      config_vars['COOKIE_DOMAIN']   = '.herokuapp.com'.freeze
 
       app_json.fetch('env', {}).each do |key, hash|
         next if hash['value'].blank? || config_vars[key].present?
@@ -127,6 +128,8 @@ module Reina
     def execute_postdeploy_scripts
       script = app_json.dig('scripts', 'postdeploy')
       return if script.blank?
+
+      return if heroku? && ENV['HEROKU_API_KEY'].blank?
 
       `heroku run #{script} --app #{app_name}`
     end
@@ -178,6 +181,10 @@ module Reina
 
     def remote_url
       "https://git.heroku.com/#{app_name}.git"
+    end
+
+    def heroku?
+      ENV['DYNO'].present?
     end
   end
 end

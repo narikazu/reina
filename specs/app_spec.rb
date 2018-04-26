@@ -140,11 +140,12 @@ describe Reina::App do
         'BONSAI_URL' => 'blabla'
       })
       expect(heroku_config_var).to receive(:update).with(app.app_name, {
-        "ES_URL"   => "blabla:443",
-        "APP_NAME" => "reina-stg-searchspot-1234",
-        "HEROKU_APP_NAME" => "reina-stg-searchspot-1234",
-        "DOMAIN_NAME"  => "reina-stg-searchspot-1234.herokuapp.com",
-        "RUST_VERSION" => "nightly"
+        'ES_URL'   => 'blabla:443',
+        'APP_NAME' => 'reina-stg-searchspot-1234',
+        'HEROKU_APP_NAME' => 'reina-stg-searchspot-1234',
+        'DOMAIN_NAME' => 'reina-stg-searchspot-1234.herokuapp.com',
+        'COOKIE_DOMAIN' => '.herokuapp.com',
+        'RUST_VERSION' => 'nightly'
       })
       set_env_vars
     end

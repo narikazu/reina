@@ -69,7 +69,7 @@ Then you need to provide the following environment variables from Heroku:
 - `GITHUB_AUTH` which is your login data to GitHub in the form of `username:password`
 - `GITHUB_NAME` which is your GitHub user's login name (protip: create a user meant to be the actual bot - [this is ours](https://github.com/reina-hp))
 - `GITHUB_EMAIL` which is your GitHub user's email
-- `HEROKU_AUTH_TOKEN` which is the output of `$ heroku auth:token`
+- `HEROKU_API_KEY` which is the output of `$ heroku auth:token`
 
 Finally you will need to make a JSON out of the two hash maps in `config.rb` and copy them respectively to the environment variables called `APPS` and `CONFIG`.
 

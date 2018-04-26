@@ -53,7 +53,7 @@ describe Reina::GitHubController do
         it 'deploys through a Reina::Controller and replies to the issue' do
           expect(instance).to receive(:fork).and_yield do |ctx|
             expect(Reina::Controller)
-              .to receive(:new).with([1234, '"a#b"']).and_return(controller)
+              .to receive(:new).with([1234, 'a#b']).and_return(controller)
 
             %i(
               delete_existing_apps! deploy_parallel_apps! deploy_non_parallel_apps!
@@ -94,7 +94,7 @@ describe Reina::GitHubController do
         context 'there are existing apps to be destroyed' do
           it 'destroys them through a Reina::Controller and replies to the issue' do
             expect(Reina::Controller)
-              .to receive(:new).with([1234, '"a#b"']).and_return(controller)
+              .to receive(:new).with([1234, 'a#b']).and_return(controller)
 
             expect(instance).to receive(:fork).and_yield do |ctx|
               expect(controller).to receive(:delete_existing_apps!).once
@@ -117,7 +117,7 @@ describe Reina::GitHubController do
 
           it 'does nothing' do
             expect(Reina::Controller)
-              .to receive(:new).with([1234, '"a#b"']).and_return(controller)
+              .to receive(:new).with([1234, 'a#b']).and_return(controller)
 
             expect(controller).to_not receive(:delete_existing_apps!)
 

@@ -105,7 +105,6 @@ module Reina
           .split(CMD_TRIGGER)[1]
           .split(' ')
           .reject(&:blank?)
-          .map { |arg| '"' + arg + '"' }
       ].flatten
     end
 

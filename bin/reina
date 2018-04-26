@@ -17,4 +17,4 @@ puts 'Starting deployments...'
 reina.deploy_parallel_apps!
 reina.deploy_non_parallel_apps!
 
-puts "Deployment finished. Live at #{reina.deployed_url}."
+puts 'All the apps have been deployed!'

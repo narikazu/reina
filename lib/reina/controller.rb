@@ -2,7 +2,7 @@ module Reina
   class Controller
     APP_COOLDOWN = 7 # seconds
 
-    def initialize(params)
+    def initialize(params, strict = false)
       @params = params
 
       abort 'Please provide $PLATFORM_API' if CONFIG[:platform_api].blank?
@@ -58,6 +58,7 @@ module Reina
     end
 
     def existing_apps
+      # apps in common between heroku's list and ours
       @_existing_apps ||= heroku.app.list.map { |a| a['name'] } & apps.map(&:app_name)
     end
 
@@ -67,7 +68,7 @@ module Reina
 
     private
 
-    attr_reader :params
+    attr_reader :params, :strict
 
     def heroku
       @_heroku ||= PlatformAPI.connect_oauth(CONFIG[:platform_api])
@@ -82,8 +83,14 @@ module Reina
     end
 
     def apps
-      @_apps ||= APPS.map do |name, project|
-        branch = branches[name.to_s].presence || 'master'
+      return @_apps if @_apps.present?
+
+      # strict is when we only take in consideration the apps
+      # that are in both `params` and `APPS`
+      app_names = strict ? branches.keys : APPS.keys
+      _apps = APPS.select { |name, _| app_names.include?(name) }
+      @_apps = _apps.map do |name, project|
+        branch = branches[name.to_s].presence || 'master'.freeze
         App.new(heroku, name, project, issue_number, branch)
       end
     end

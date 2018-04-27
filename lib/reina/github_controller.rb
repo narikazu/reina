@@ -8,7 +8,8 @@ module Reina
   class UnsupportedEventError < StandardError; end
 
   class GitHubController
-    CMD_TRIGGER = 'reina: d '.freeze
+    DEPLOY_TRIGGER = 'reina: d '.freeze
+    SINGLE_DEPLOY_TRIGGER = 'reina: r '.freeze
     EVENTS = %w(issues issue_comment).freeze
 
     def initialize(config)
@@ -46,7 +47,11 @@ module Reina
     end
 
     def deploy_requested?
-      action == 'created'.freeze && comment_body.start_with?(CMD_TRIGGER)
+      action == 'created'.freeze && comment_body.start_with?(DEPLOY_TRIGGER)
+    end
+
+    def single_deploy_requested?
+      action == 'created'.freeze && comment_body.start_with?(SINGLE_DEPLOY_TRIGGER)
     end
 
     def issue_closed?
@@ -102,7 +107,7 @@ module Reina
         issue_number,
         comment_body
           .lines[0]
-          .split(CMD_TRIGGER)[1]
+          .split(/#{DEPLOY_TRIGGER}|#{SINGLE_DEPLOY_TRIGGER}/)[1]
           .split(' ')
           .reject(&:blank?)
       ].flatten

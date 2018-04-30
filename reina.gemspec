@@ -1,7 +1,7 @@
 Kernel.load 'lib/reina/version.rb'
 
 Gem::Specification.new { |s|
-  s.name        = 'reina'
+  s.name        = 'reinarb'
   s.version     = Reina::VERSION
   s.author      = 'Giovanni Capuano'
   s.email       = 'webmaster@giovannicapuano.net'

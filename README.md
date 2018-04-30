@@ -12,6 +12,35 @@ the direct URL to the tarball of a repository which is
 hard to provide when it is private. So we do pretty much
 everything manually in the code base.
 
+Use case
+--------
+TL;DR: You can deploy different branches, on Heroku, of different projects that rely on each other
+and get them connected through environment variables.
+
+As you can see from the template of the configuration, at Honeypot we have four main applications
+that make the whole architecture work as intended.
+
+This is nice and fine in production and in the main staging, but it's not that simple with the feature stagings
+provided by Heroku (basically everytime you open a pull request against a repository a fresh and temporary
+staging environment gets automatically created).
+
+Until a couple of months ago, the admin and the frontend apps were located in the main back-end repository,
+while a single [searchspot](https://github.com/honeypotio/searchspot) instance was shared among the other
+feature stagings, with all the obvious indexing problem that you can imagine from such a setup.
+
+By moving the frontend app to another repository, we basically had the need to modify manually the environment
+variables to connect it to the back-end everytime we had to do QA for a change that must be present on both
+the sides.
+
+Sure thing, Kubernetes and similar applications are possibily a good solutions for similar cases but preferred
+to continue using a testing architecture similar to the one we were used to since it always well suited our methodologies
+without adding additional layers we hadn't experience at or moving to other testing solutions.
+
+So we ended up with reina, which basically allows us to replace Heroku's feature stagings by adding a good amount
+of customizations and nice things. We are sure other solutions do exist, but reina seems working good for us from
+quite some time. It's not hard to set it up as a bot and hopefully can help anyone else that get into a situation
+similar to ours. Feel free to open an issue for anything or submit a pull request if you need something from her to do!
+
 Usage
 ----
 

@@ -1,3 +1,3 @@
 test:
   override:
-    - bundle exec rspec spec
+    - cp config.rb.sample config.rb && rake

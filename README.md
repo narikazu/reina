@@ -35,7 +35,7 @@ the `app#branch` tuples that are not specified in the command but present in you
 Setup
 -----
 
-Install the gem which will provide you both the executable and the library: `$ gem install reina`.
+Install the gem which will provide you both the executable and the library: `$ gem install reinarb`.
 
 Then, copy somewhere in your machine the `config.rb.sample` file that you can find here
 in this repository  and rename it as `config.rb`.

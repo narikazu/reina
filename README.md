@@ -1,6 +1,9 @@
 Reina - 響け！
 -------------
 
+[![Gem Version](https://badge.fury.io/rb/reinarb.svg)](https://badge.fury.io/rb/reinarb)
+[![CircleCI](https://circleci.com/gh/honeypotio/reina.svg?style=svg)](https://circleci.com/gh/honeypotio/reina)
+
 GitHub bot and CLI application to handle deployments and
 orchestrations of feature stagings on Heroku.
 

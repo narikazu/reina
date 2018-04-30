@@ -13,8 +13,11 @@ Usage
 ----
 
 When used as a bot, just leave a comment in an issue like `reina: d projectzero#nice-feature-branch`.
-Reina will handle all the cleaning once you eventually close it. By executing once again the command,
-the stagings will be replaced with a fresh new deploy.
+Reina will handle all the cleaning once you eventually close it.
+By executing once again the command, the stagings will be replaced with a fresh new deploy.
+You will replace `d` with `r` when you want to deploy only the apps that you have clearly defined
+in the command, which is useful when you want to deploy only the latest version of an application
+that you have already deployed instead of the whole suite.
 
 As a CLI application, execute `$ ruby reina.rb 1234 "projectzero#nice-feature-branch"`.
 

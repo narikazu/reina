@@ -8,7 +8,8 @@ module Reina
   class UnsupportedEventError < StandardError; end
 
   class GitHubController
-    CMD_TRIGGER = 'reina: d '.freeze
+    DEPLOY_TRIGGER = 'reina: d '.freeze
+    SINGLE_DEPLOY_TRIGGER = 'reina: r '.freeze
     EVENTS = %w(issues issue_comment).freeze
 
     def initialize(config)
@@ -24,6 +25,8 @@ module Reina
 
       if deploy_requested?
         deploy!
+      elsif single_deploy_requested?
+        deploy!(true)
       elsif issue_closed?
         destroy!
       end
@@ -46,28 +49,41 @@ module Reina
     end
 
     def deploy_requested?
-      action == 'created'.freeze && comment_body.start_with?(CMD_TRIGGER)
+      action == 'created'.freeze && comment_body.start_with?(DEPLOY_TRIGGER)
+    end
+
+    def single_deploy_requested?
+      action == 'created'.freeze && comment_body.start_with?(SINGLE_DEPLOY_TRIGGER)
     end
 
     def issue_closed?
       action == 'closed'.freeze
     end
 
-    def deploy!
-      reina = Controller.new(params)
+    def deploy!(strict = false)
+      reina = Controller.new(params, strict)
       should_comment = config[:oauth_token].present?
       reply = ->(msg) { octokit.add_comment(repo_full_name, issue_number, msg) }
       url = deployed_url
 
       fork do
-        reply.call('Starting deployments...') if should_comment
+        apps_count = reina.apps.size
+
+        if should_comment
+          if apps_count > 1
+            reply.call("Starting to deploy #{apps_count} apps...")
+          else
+            reply.call("Starting to deploy one app...")
+          end
+        end
 
         reina.create_netrc if reina.heroku?
         reina.delete_existing_apps!
         reina.deploy_parallel_apps!
         reina.deploy_non_parallel_apps!
 
-        reply.call("Deployment finished. Live at #{url}.") if should_comment
+        s = 's'.freeze if apps_count > 1
+        reply.call("Deployment#{s} finished. Live at #{url}.") if should_comment
       end
     end
 
@@ -102,7 +118,7 @@ module Reina
         issue_number,
         comment_body
           .lines[0]
-          .split(CMD_TRIGGER)[1]
+          .split(/#{DEPLOY_TRIGGER}|#{SINGLE_DEPLOY_TRIGGER}/)[1]
           .split(' ')
           .reject(&:blank?)
       ].flatten

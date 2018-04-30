@@ -2,7 +2,8 @@ require_relative 'spec_helper'
 
 describe Reina::Controller do
   let(:params) { [1234, 'a#b', 'c#d'] }
-  let(:instance) { described_class.new(params) }
+  let(:strict) { false }
+  let(:instance) { described_class.new(params, strict) }
   let(:apps) do
     [
       double('App', parallel?: true,

@@ -2,8 +2,9 @@ module Reina
   class Controller
     APP_COOLDOWN = 7 # seconds
 
-    def initialize(params)
+    def initialize(params, strict = false)
       @params = params
+      @strict = strict
 
       abort 'Please provide $PLATFORM_API' if CONFIG[:platform_api].blank?
       abort 'Given PR number should be greater than 0' if issue_number <= 0
@@ -33,7 +34,8 @@ module Reina
         rescue Git::GitExecuteError => e
           puts "#{app.name}: #{e.message}"
         rescue Exception => e
-          puts "#{app.name}: #{e.response.body}"
+          msg = e.respond_to?(:response) ? e.response.body : e.message
+          puts "#{app.name}: #{msg}"
         end
       end
     end
@@ -45,7 +47,8 @@ module Reina
         rescue Git::GitExecuteError => e
           puts "#{app.name}: #{e.message}"
         rescue Exception => e
-          puts "#{app.name}: #{e.response.body}"
+          msg = e.respond_to?(:response) ? e.response.body : e.message
+          puts "#{app.name}: #{msg}"
         end
       end
     end
@@ -58,6 +61,7 @@ module Reina
     end
 
     def existing_apps
+      # apps in common between heroku's list and ours
       @_existing_apps ||= heroku.app.list.map { |a| a['name'] } & apps.map(&:app_name)
     end
 
@@ -65,9 +69,27 @@ module Reina
       ENV['DYNO'].present?
     end
 
+    def apps
+      return @_apps if @_apps.present?
+
+      # strict is when we only take in consideration the apps
+      # that are in both `params` and `APPS`
+      _apps = if strict
+        app_names = branches.keys
+        APPS.select { |name, _| app_names.include?(name) }
+      else
+        APPS
+      end
+
+      @_apps = _apps.map do |name, project|
+        branch = branches[name.to_s].presence || 'master'.freeze
+        App.new(heroku, name, project, issue_number, branch)
+      end
+    end
+
     private
 
-    attr_reader :params
+    attr_reader :params, :strict
 
     def heroku
       @_heroku ||= PlatformAPI.connect_oauth(CONFIG[:platform_api])
@@ -79,13 +101,6 @@ module Reina
 
     def branches
       @_branches ||= params.map { |param| param.split('#', 2) }.to_h
-    end
-
-    def apps
-      @_apps ||= APPS.map do |name, project|
-        branch = branches[name.to_s].presence || 'master'
-        App.new(heroku, name, project, issue_number, branch)
-      end
     end
 
     def deploy!(app)

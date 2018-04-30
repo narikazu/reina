@@ -15,20 +15,27 @@ Usage
 When used as a bot, just leave a comment in an issue like `reina: d projectzero#nice-feature-branch`.
 Reina will handle all the cleaning once you eventually close it.
 By executing once again the command, the stagings will be replaced with a fresh new deploy.
-You will replace `d` with `r` when you want to deploy only the apps that you have clearly defined
-in the command, which is useful when you want to deploy only the latest version of an application
-that you have already deployed instead of the whole suite.
 
-As a CLI application, execute `$ ruby reina.rb 1234 "projectzero#nice-feature-branch"`.
+You will replace the `d` with `r` (as in `reina: r projectzero#nice-feature-branch`) when you want
+to enable the `strict` mode which deploys only the apps that you have explicitly specified in the command
+which is useful when you want to deploy only the latest version of an application that you have already
+deployed rather than the whole suite.
 
-`1234` would basically be the issue number, while for all the `app#branch` tuples
-that are not explicitized in the command but present in your mapping (`config.rb`),
-those will be deployed from the `master` branch.
+As a CLI application, execute `$ reina 1234 "projectzero#nice-feature-branch"`.
+
+`$ reina -h` will show the usage infos in order to enable things like the above mentioned `strict` mode.
+
+In the example command mentioned before, `1234` would basically be the issue number, while for all
+the `app#branch` tuples that are not specified in the command but present in your mapping (`config.rb`),
+ will be deployed from the `master` branch (which is the same of what happens with the bot usage btw).
 
 Setup
 -----
 
-`$ bundle install && cp config.rb.sample config.rb`
+Install the gem which will provide you both the executable and the library: `$ gem install reina`.
+
+Then, copy somewhere in your machine the `config.rb.sample` file that you can find here
+in this repository  and rename it as `config.rb`.
 
 Configure the `APPS` hash map of the `config.rb` file based on your setup.
 We can't provide proper documentation for now but with the template we have left
@@ -76,7 +83,7 @@ Finally you will need to make a JSON out of the two hash maps in `config.rb` and
 If you also want Reina to add replies to your request, create an API key for your account (preferabily the one dedicated to the bot you have created before) with `write:discussion` and `repos` permissions. [Instructions here](https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/).
 Once the key has been generated, set it as `GITHUB_OAUTH_TOKEN` (or add it to the `config.rb` file).
 
-This is what eventually your environment variables should look like on Heroku: https://i.imgur.com/591bWv7.png
+This is what eventually your environment variables should look like on Heroku: https://i.imgur.com/zx4cHWB.png
 
 License
 -------

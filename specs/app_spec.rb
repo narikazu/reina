@@ -23,7 +23,7 @@ describe Reina::App do
 
   let(:issue_number) { 1234 }
   let(:branch) { 'features/hibike' }
-  let(:app) { described_class.new(heroku, :searchspot, APPS[:searchspot], issue_number, branch) }
+  let(:app) { described_class.new(heroku, :searchspot, Reina::APPS[:searchspot], issue_number, branch) }
 
   before do
     allow(PlatformAPI).to receive(:connect_oauth).and_return(heroku)
@@ -88,7 +88,7 @@ describe Reina::App do
 
     context 'region is requested' do
       it 'creates a new app on Heroku' do
-        APPS[:searchspot][:region] = 'us'
+        Reina::APPS[:searchspot][:region] = 'us'
         expect(heroku_app).to receive(:create).with('name' => app.app_name, 'region' => 'us')
         create_app
       end
@@ -96,7 +96,7 @@ describe Reina::App do
 
     context 'region is not requested' do
       it 'creates a new app on Heroku' do
-        APPS[:searchspot].delete(:region)
+        Reina::APPS[:searchspot].delete(:region)
         expect(heroku_app).to receive(:create).with('name' => app.app_name, 'region' => 'eu')
         create_app
       end

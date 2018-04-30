@@ -4,6 +4,8 @@ module Reina
   if File.exists?(config_file)
     if ENV['CONFIG'].blank? || ENV['APPS'].blank?
       require config_file
+      Reina::CONFIG = CONFIG
+      Reina::APPS = APPS
     else
       self.class.send(:remove_const, 'CONFIG')
       self.class.send(:remove_const, 'APPS')

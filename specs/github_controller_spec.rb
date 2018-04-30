@@ -38,7 +38,8 @@ describe Reina::GitHubController do
             heroku?: false,
             delete_existing_apps!: true,
             deploy_parallel_apps!: true,
-            deploy_non_parallel_apps!: true)
+            deploy_non_parallel_apps!: true,
+            apps: [])
         end
         let(:octokit) { double('Octokit', user: user) }
         let(:user) { double('Octokit', login: true) }
@@ -50,24 +51,50 @@ describe Reina::GitHubController do
           dispatch
         end
 
-        it 'deploys through a Reina::Controller and replies to the issue' do
-          expect(instance).to receive(:fork).and_yield do |ctx|
-            expect(Reina::Controller)
-              .to receive(:new).with([1234, 'a#b']).and_return(controller)
+        context 'normal deploy' do
+          it 'deploys through a Reina::Controller and replies to the issue' do
+            expect(instance).to receive(:fork).and_yield do |ctx|
+              expect(Reina::Controller)
+                .to receive(:new).with([1234, 'a#b'], false).and_return(controller)
 
-            %i(
-              delete_existing_apps! deploy_parallel_apps! deploy_non_parallel_apps!
-            ).each { |cmd| expect(controller).to receive(cmd).once }
+              %i(
+                delete_existing_apps! deploy_parallel_apps! deploy_non_parallel_apps! apps
+              ).each { |cmd| expect(controller).to receive(cmd).once }
+            end
+
+            allow(instance).to receive(:fork)
+            allow(Octokit::Client)
+              .to receive(:new).with(access_token: 'token').and_return(octokit)
+            expect(user).to receive(:login)
+            expect(octokit).to receive(:add_comment).with('org/sample', 1234, 'Starting to deploy one app...')
+            expect(octokit).to receive(:add_comment).with('org/sample', 1234, "Deployment finished. Live at #{url}.")
+
+            dispatch
           end
+        end
 
-          allow(instance).to receive(:fork)
-          allow(Octokit::Client)
-            .to receive(:new).with(access_token: 'token').and_return(octokit)
-          expect(user).to receive(:login)
-          expect(octokit).to receive(:add_comment).with('org/sample', 1234, 'Starting deployments...')
-          expect(octokit).to receive(:add_comment).with('org/sample', 1234, "Deployment finished. Live at #{url}.")
+        context 'single deploy' do
+          let(:comment) { 'reina: r a#b' }
 
-          dispatch
+          it 'deploys through a Reina::Controller and replies to the issue' do
+            expect(instance).to receive(:fork).and_yield do |ctx|
+              expect(Reina::Controller)
+                .to receive(:new).with([1234, 'a#b'], true).and_return(controller)
+
+              %i(
+                delete_existing_apps! deploy_parallel_apps! deploy_non_parallel_apps! apps
+              ).each { |cmd| expect(controller).to receive(cmd).once }
+            end
+
+            allow(instance).to receive(:fork)
+            allow(Octokit::Client)
+              .to receive(:new).with(access_token: 'token').and_return(octokit)
+            expect(user).to receive(:login)
+            expect(octokit).to receive(:add_comment).with('org/sample', 1234, 'Starting to deploy one app...')
+            expect(octokit).to receive(:add_comment).with('org/sample', 1234, "Deployment finished. Live at #{url}.")
+
+            dispatch
+          end
         end
       end
 

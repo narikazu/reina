@@ -1,20 +1,53 @@
 #!/usr/bin/env ruby
 require 'reina'
-require 'readline'
+require 'optparse'
 
-reina = Reina::Controller.new(ARGV.dup)
+options = {
+  force: false,
+  strict: false
+}
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: reina [options]"
+
+  opts.on('-f', '--force', 'Delete the existing apps without asking for deletion') do
+    options[:force] = true
+  end
+
+  opts.on('-s', '--strict', 'Enable the strict mode in which only the apps given in the CLI are considered rather than the whole suite') do
+    options[:strict] = true
+  end
+
+  opts.on('-v', '--version', 'Print the version') do
+    puts Reina::VERSION
+    exit
+  end
+end.parse!
+
+reina = Reina::Controller.new(ARGV.dup, options[:strict])
 
 if reina.existing_apps.present?
   puts 'The following apps already exist on Heroku:'
   puts reina.existing_apps.map { |a| "- #{a}" }
-  abort if Readline.readline('Type "OK" to delete the apps above: ', true).strip != 'OK'
+
+  unless options[:force]
+    require 'readline'
+    abort if Readline.readline('Type "OK" to delete the apps above: ', true).strip != 'OK'
+  end
 
   reina.delete_existing_apps!
 end
 
-puts 'Starting deployments...'
+apps_count = reina.apps.size
+
+if apps_count > 1
+  puts "Starting to deploy #{apps_count} apps..."
+else
+  puts "Starting to deploy one app..."
+end
 
 reina.deploy_parallel_apps!
 reina.deploy_non_parallel_apps!
 
-puts 'All the apps have been deployed!'
+s = 's'.freeze if apps_count > 1
+puts "Deployment#{s} finished. Live at #{url}."

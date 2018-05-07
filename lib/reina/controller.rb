@@ -106,6 +106,7 @@ module Reina
     def deploy!(app)
       puts "#{app.name}: Fetching from #{app.project[:github]}..."
       app.fetch_repository
+      puts "#{app.name}: HEAD is #{app.g.object('HEAD').sha}"
 
       puts "#{app.name}: Provisioning #{app.app_name} on Heroku..."
       app.create_app

@@ -4,10 +4,11 @@ describe Reina::Controller do
   let(:params) { [1234, 'a#b', 'c#d'] }
   let(:strict) { false }
   let(:instance) { described_class.new(params, strict) }
+  let(:g) { double('Git', object: double('Git::Object', sha: 'abc')) }
   let(:apps) do
     [
       double('App', parallel?: true,
-        name: '', app_name: '', project: {}, domain_name: '' ),
+        name: '', app_name: '', project: {}, domain_name: '', g: g),
       double('App', parallel?: false),
     ]
   end

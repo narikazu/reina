@@ -135,7 +135,7 @@ module Reina
     end
 
     def deploy
-      g.push(remote_name, 'master')
+      g.push(remote_name, "#{branch}:master")
     end
 
     def app_json

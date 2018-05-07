@@ -192,7 +192,7 @@ describe Reina::App do
     subject(:deploy) { app.deploy }
 
     it 'deploys the app to heroku' do
-      expect(git).to receive(:push).with("heroku-#{app.app_name}", 'master')
+      expect(git).to receive(:push).with("heroku-#{app.app_name}", "#{branch}:master")
       deploy
     end
   end

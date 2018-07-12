@@ -25,7 +25,7 @@ module Reina
 
       @g = Git.clone(github_url, name, { :path => base_dir })
 
-      g.pull('origin', branch)
+      g.fetch('origin', branch)
       g.checkout(g.branch(branch))
 
       unless g.remotes.map(&:name).include?(remote_name)

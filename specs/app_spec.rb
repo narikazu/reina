@@ -41,19 +41,30 @@ describe Reina::App do
     subject(:fetch_repository) { app.fetch_repository }
 
     context 'folder exists' do
-      before { allow(Dir).to receive(:exists?).with('searchspot').and_return(true) }
+      before { allow(Dir).to receive(:exists?).with('/tmp/checkouts/searchspot').and_return(true) }
 
       it 'opens the git folder' do
-        expect(Git).to receive(:open).with('searchspot')
+        expect(Dir).to receive(:delete).with('/tmp/checkouts/searchspot')
+        expect(Git).to receive(:clone).with(
+          'https://github.com/honeypotio/searchspot',
+          'searchspot',
+          path: '/tmp/checkouts/',
+        )
+
         fetch_repository
       end
     end
 
     context 'folder does not exists' do
-      before { allow(Dir).to receive(:exists?).with('searchspot').and_return(false) }
+      before { allow(Dir).to receive(:exists?).with('/tmp/checkouts/searchspot').and_return(false) }
 
       it 'clones the git folder' do
-        expect(Git).to receive(:clone).with('https://github.com/honeypotio/searchspot', 'searchspot')
+        expect(Git).to receive(:clone).with(
+          'https://github.com/honeypotio/searchspot',
+          'searchspot',
+          path: '/tmp/checkouts/',
+        )
+
         fetch_repository
       end
     end

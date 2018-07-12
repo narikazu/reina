@@ -15,11 +15,13 @@ module Reina
     end
 
     def fetch_repository
-      if Dir.exists?(name)
-        @g = Git.open(name)
-      else
-        @g = Git.clone(github_url, name)
+      base_dir = '/tmp/checkouts/'
+      dir = base_dir + name
+      if Dir.exists?(dir)
+        Dir.delete(dir)
       end
+
+      @g = Git.clone(github_url, name, { :path => base_dir })
 
       g.pull('origin', branch)
       g.checkout(g.branch(branch))

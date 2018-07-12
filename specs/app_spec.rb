@@ -44,7 +44,7 @@ describe Reina::App do
       before { allow(Dir).to receive(:exists?).with('/tmp/checkouts/searchspot').and_return(true) }
 
       it 'opens the git folder' do
-        expect(Dir).to receive(:delete).with('/tmp/checkouts/searchspot')
+        expect(FileUtils).to receive(:remove_dir).with('/tmp/checkouts/searchspot', force: true)
         expect(Git).to receive(:clone).with(
           'https://github.com/honeypotio/searchspot',
           'searchspot',

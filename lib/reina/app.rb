@@ -1,3 +1,5 @@
+require 'fileutils'
+
 module Reina
   class App
     DEFAULT_REGION = 'eu'.freeze
@@ -18,7 +20,7 @@ module Reina
       base_dir = '/tmp/checkouts/'
       dir = base_dir + name
       if Dir.exists?(dir)
-        Dir.delete(dir)
+        FileUtils.remove_dir(dir, force: true)
       end
 
       @g = Git.clone(github_url, name, { :path => base_dir })

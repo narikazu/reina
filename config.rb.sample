@@ -17,7 +17,7 @@ APPS = {
       from: 'staging-searchspot',
       except: ['BONSAI_URL'],
       copy: [
-        { from: 'BONSAI_URL', to: 'ES_URL', append: ':443' }
+        { from: 'searchspot#BONSAI_URL', to: 'ES_URL', append: ':443' }
       ]
     }
   },

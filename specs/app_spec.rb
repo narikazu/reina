@@ -110,9 +110,7 @@ describe Reina::App do
       expect(heroku_addon).to receive(:create).with(app.app_name, {
         "plan"   => "bonsai",
         "config" => {
-          "options" => {
-            "version" => "2.4"
-          }
+          "version" => "2.4"
         }
       })
       install_addons

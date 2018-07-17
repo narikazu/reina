@@ -40,7 +40,7 @@ module Reina
       addons = project.fetch(:addons, []) + app_json.fetch('addons', [])
       addons.each do |addon|
         if addon.is_a?(Hash) && addon.has_key?('options')
-          addon['config'] = addon.extract!('options')
+          addon['config'] = addon.delete('options')
         else
           addon = { 'plan' => addon }
         end

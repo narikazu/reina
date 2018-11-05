@@ -50,4 +50,4 @@ reina.deploy_parallel_apps!
 reina.deploy_non_parallel_apps!
 
 s = 's'.freeze if apps_count > 1
-puts "Deployment#{s} finished. Live at #{url}."
+puts "Deployment#{s} finished. Live at #{url}/users/login."

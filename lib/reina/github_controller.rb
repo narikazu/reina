@@ -33,7 +33,7 @@ module Reina
     end
 
     def deployed_app_name(app)
-      "#{CONFIG[:app_name_prefix]}#{app}-#{issue_number}"
+      "#{CONFIG[:app_name_prefix]}#{app.name}-#{issue_number}"
     end
 
     def deployed_url(app)
@@ -71,17 +71,20 @@ module Reina
       should_comment = config[:oauth_token].present?
       reply = ->(msg) { octokit.add_comment(repo_full_name, issue_number, msg) }
 
-      deploy_finished_message = if should_comment
-        message = "Finished deploying.\n\n"
+      deploy_finished_message = ""
+
+      if should_comment
+        deploy_finished_message += "Finished deploying.\n"
 
         reina.apps.map do |app|
-          message << "- #{app.name} -- [Live url](#{deployed_url(app)}) \
-            [Heroku](#{heroku_url(app)}) \
-            [Settings](#{heroku_url(app, "settings")}) \
-            [Logs](#{heroku_url(app, "logs")}).\n"
+          deploy_finished_message += "\n\
+- #{app.name} -- [Live url](#{deployed_url(app)}) \
+[Heroku](#{heroku_url(app)}) \
+[Settings](#{heroku_url(app, "settings")}) \
+[Logs](#{heroku_url(app, "logs")})"
         end
 
-        message
+        deploy_finished_message += "\n"
       end
 
       fork do

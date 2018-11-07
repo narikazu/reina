@@ -51,12 +51,12 @@ describe Reina::GitHubController do
         let(:user) { double('Octokit', login: true) }
         let(:app_name) { "sample" }
         let(:url) { "https://reina-stg-#{app_name}-1234.herokuapp.com/foobar" }
-        let(:heroku_url) { "https://dashboard.heroku.com/apps/#{app_name}/"}
+        let(:heroku_url) { "https://dashboard.heroku.com/apps/reina-stg-#{app_name}-1234/"}
         let(:deploy_message) do
 <<-RAW
 Finished deploying.
 
-- sample -- [Live url](#{url}) [Heroku](#{heroku_url}) [Settings](#{heroku_url}/settings) [Logs](#{heroku_url}/logs)
+- sample -- [Live url](#{url}) [Heroku](#{heroku_url}) [Settings](#{heroku_url}settings) [Logs](#{heroku_url}logs)
 RAW
         end
 
@@ -72,8 +72,9 @@ RAW
               expect(Reina::Controller)
                 .to receive(:new).with([1234, 'a#b'], false).and_return(controller)
 
+              expect(controller).to receive(:apps).twice
               %i(
-                delete_existing_apps! deploy_parallel_apps! deploy_non_parallel_apps! apps
+                delete_existing_apps! deploy_parallel_apps! deploy_non_parallel_apps!
               ).each { |cmd| expect(controller).to receive(cmd).once }
             end
 
@@ -96,8 +97,9 @@ RAW
               expect(Reina::Controller)
                 .to receive(:new).with([1234, 'a#b'], true).and_return(controller)
 
+              expect(controller).to receive(:apps).twice
               %i(
-                delete_existing_apps! deploy_parallel_apps! deploy_non_parallel_apps! apps
+                delete_existing_apps! deploy_parallel_apps! deploy_non_parallel_apps!
               ).each { |cmd| expect(controller).to receive(cmd).once }
             end
 

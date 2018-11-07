@@ -159,6 +159,10 @@ module Reina
       "heroku-#{app_name}"
     end
 
+    def deployed_url_suffix
+      project.fetch(:deployed_url_suffix, '')
+    end
+
     def parallel?
       project[:parallel] != false
     end

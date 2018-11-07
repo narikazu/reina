@@ -25,6 +25,7 @@ APPS = {
   honeypot: {
     github: 'honeypotio/honeypot',
     pipeline: 'honeypot',
+    deployed_url_suffix: 'users/login',
     config_vars: {
       from: 'staging-honeypot',
       except: [

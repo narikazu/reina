@@ -32,10 +32,16 @@ module Reina
       end
     end
 
-    def deployed_url
-      [
-        'https://', CONFIG[:app_name_prefix], repo_name, '-', issue_number, '.herokuapp.com'
-      ].join
+    def deployed_app_name(app)
+      "#{CONFIG[:app_name_prefix]}#{app}-#{issue_number}"
+    end
+
+    def deployed_url(app)
+      "https://#{deployed_app_name(app)}.herokuapp.com/#{app.deployed_url_suffix}"
+    end
+
+    def heroku_url(app, path = "")
+      "https://dashboard.heroku.com/apps/#{deployed_app_name(app)}/#{path}"
     end
 
     private
@@ -64,7 +70,6 @@ module Reina
       reina = Controller.new(params, strict)
       should_comment = config[:oauth_token].present?
       reply = ->(msg) { octokit.add_comment(repo_full_name, issue_number, msg) }
-      url = deployed_url
 
       fork do
         apps_count = reina.apps.size
@@ -82,8 +87,19 @@ module Reina
         reina.deploy_parallel_apps!
         reina.deploy_non_parallel_apps!
 
-        s = 's'.freeze if apps_count > 1
-        reply.call("Deployment#{s} finished. Live at #{url}/users/login.") if should_comment
+        if should_comment
+          message = "Finished deploying.\n\n"
+
+          pp reina.apps
+          reina.apps.map do |app|
+            message << "- #{app.name} -- [Live url](#{deployed_url(app)}) \
+              [Heroku](#{heroku_url(app)}) \
+              [Settings](#{heroku_url(app, "settings")}) \
+              [Logs](#{heroku_url(app, "logs")}). \n"
+          end
+
+          reply.call(message)
+        end
       end
     end
 

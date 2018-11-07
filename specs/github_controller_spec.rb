@@ -33,17 +33,32 @@ describe Reina::GitHubController do
         let(:event) { 'issue_comment' }
         let(:action) { 'created' }
 
+        let(:app) do
+          double('App',
+            name: app_name,
+            deployed_url_suffix: 'foobar'
+            )
+        end
         let(:controller) do
           double('Controller',
             heroku?: false,
             delete_existing_apps!: true,
             deploy_parallel_apps!: true,
             deploy_non_parallel_apps!: true,
-            apps: [])
+            apps: [app])
         end
         let(:octokit) { double('Octokit', user: user) }
         let(:user) { double('Octokit', login: true) }
-        let(:url) { 'https://reina-stg-sample-1234.herokuapp.com' }
+        let(:app_name) { "sample" }
+        let(:url) { "https://reina-stg-#{app_name}-1234.herokuapp.com/foobar" }
+        let(:heroku_url) { "https://dashboard.heroku.com/apps/#{app_name}/"}
+        let(:deploy_message) do
+          <<-RAW
+Finished deploying.
+
+- sample -- [Live url](#{url}) [Heroku](#{heroku_url}) [Settings](#{heroku_url}/settings) [Logs](#{heroku_url}/logs)
+          RAW
+        end
 
         it 'requests a deploy' do
           expect(instance).to receive(:deploy!)
@@ -67,7 +82,7 @@ describe Reina::GitHubController do
               .to receive(:new).with(access_token: 'token').and_return(octokit)
             expect(user).to receive(:login)
             expect(octokit).to receive(:add_comment).with('org/sample', 1234, 'Starting to deploy one app...')
-            expect(octokit).to receive(:add_comment).with('org/sample', 1234, "Deployment finished. Live at #{url}/users/login.")
+            expect(octokit).to receive(:add_comment).with('org/sample', 1234, deploy_message)
 
             dispatch
           end
@@ -91,7 +106,7 @@ describe Reina::GitHubController do
               .to receive(:new).with(access_token: 'token').and_return(octokit)
             expect(user).to receive(:login)
             expect(octokit).to receive(:add_comment).with('org/sample', 1234, 'Starting to deploy one app...')
-            expect(octokit).to receive(:add_comment).with('org/sample', 1234, "Deployment finished. Live at #{url}.")
+            expect(octokit).to receive(:add_comment).with('org/sample', 1234, deploy_message)
 
             dispatch
           end

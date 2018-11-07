@@ -67,7 +67,7 @@ describe Reina::GitHubController do
               .to receive(:new).with(access_token: 'token').and_return(octokit)
             expect(user).to receive(:login)
             expect(octokit).to receive(:add_comment).with('org/sample', 1234, 'Starting to deploy one app...')
-            expect(octokit).to receive(:add_comment).with('org/sample', 1234, "Deployment finished. Live at #{url}.")
+            expect(octokit).to receive(:add_comment).with('org/sample', 1234, "Deployment finished. Live at #{url}/users/login.")
 
             dispatch
           end

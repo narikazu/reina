@@ -53,11 +53,11 @@ describe Reina::GitHubController do
         let(:url) { "https://reina-stg-#{app_name}-1234.herokuapp.com/foobar" }
         let(:heroku_url) { "https://dashboard.heroku.com/apps/#{app_name}/"}
         let(:deploy_message) do
-          <<-RAW
+<<-RAW
 Finished deploying.
 
 - sample -- [Live url](#{url}) [Heroku](#{heroku_url}) [Settings](#{heroku_url}/settings) [Logs](#{heroku_url}/logs)
-          RAW
+RAW
         end
 
         it 'requests a deploy' do

@@ -83,7 +83,7 @@ module Reina
         reina.deploy_non_parallel_apps!
 
         s = 's'.freeze if apps_count > 1
-        reply.call("Deployment#{s} finished. Live at #{url}.") if should_comment
+        reply.call("Deployment#{s} finished. Live at #{url}/users/login.") if should_comment
       end
     end
 

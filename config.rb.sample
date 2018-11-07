@@ -26,8 +26,12 @@ APPS = {
     github: 'honeypotio/honeypot',
     pipeline: 'honeypot',
     config_vars: {
-      from: 'replica-production-honeypot',
-      except: ['BUILDPACK_URL', 'DATABASE_URL', 'REDIS_URL', 'SEED_MODELS'],
+      from: 'staging-honeypot',
+      except: [
+        'BUILDPACK_URL', 'DATABASE_URL', 'REDIS_URL',
+        'SEED_MODELS', 'ASSET_HOST', 'STATIC_PAGES_HOST',
+        'VWO_ID', 'API_BASE'
+      ],
       copy: [
         { from: 'searchspot#url', to: 'SEARCHSPOT_URL' },
         { from: 'frontend#url', to: 'FRONTEND_HOST' },

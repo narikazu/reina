@@ -77,7 +77,12 @@ RAW
               expect(Reina::Controller)
                 .to receive(:new).with([1234, 'a#b'], false).and_return(controller)
 
+              allow(ctx).to receive(:post_reply) { |msg|
+                instance.send(:post_reply, msg)
+              }
+
               expect(controller).to receive(:apps).twice
+
               %i(
                 delete_existing_apps! deploy_parallel_apps! deploy_non_parallel_apps!
               ).each { |cmd| expect(controller).to receive(cmd).once }
@@ -102,6 +107,10 @@ RAW
               expect(Reina::Controller)
                 .to receive(:new).with([1234, 'a#b'], true).and_return(controller)
 
+              allow(ctx).to receive(:post_reply) { |msg|
+                instance.send(:post_reply, msg)
+              }
+
               expect(controller).to receive(:apps).twice
               %i(
                 delete_existing_apps! deploy_parallel_apps! deploy_non_parallel_apps!
@@ -114,6 +123,22 @@ RAW
             expect(user).to receive(:login)
             expect(octokit).to receive(:add_comment).with('org/sample', 1234, 'Starting to deploy one app...')
             expect(octokit).to receive(:add_comment).with('org/sample', 1234, deploy_message)
+
+            dispatch
+          end
+        end
+
+        context 'unknown command' do
+          let(:comment) { 'reina: u a#b' }
+
+          it 'replies to the issue' do
+            expect(instance).to_not receive(:fork)
+
+            allow(Octokit::Client)
+              .to receive(:new).with(access_token: 'token').and_return(octokit)
+            expect(user).to receive(:login)
+            expect(octokit).to receive(:add_comment)
+              .with('org/sample', 1234, "Unknown command: 'u a#b'")
 
             dispatch
           end
@@ -146,6 +171,10 @@ RAW
               .to receive(:new).with([1234, 'a#b']).and_return(controller)
 
             expect(instance).to receive(:fork).and_yield do |ctx|
+              allow(ctx).to receive(:post_reply) { |msg|
+                instance.send(:post_reply, msg)
+              }
+
               expect(controller).to receive(:delete_existing_apps!).once
             end
 

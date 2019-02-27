@@ -1,4 +1,4 @@
-require_relative 'spec_helper'
+require 'reina'
 
 describe Reina::App do
   let(:heroku_app) { double('Heroku App') }
@@ -32,7 +32,7 @@ describe Reina::App do
 
     allow(app).to receive(:g).and_return(git)
 
-    f = File.read('specs/searchspot/app.json')
+    f = File.read('spec/searchspot/app.json')
     allow(File).to receive(:read).with('searchspot/app.json').and_return(f)
     allow(File).to receive(:exists?).with('searchspot/app.json').and_return(true)
   end

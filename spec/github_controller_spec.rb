@@ -1,7 +1,12 @@
-require_relative 'spec_helper'
+require 'reina'
 
 describe Reina::GitHubController do
-  let(:instance) { described_class.new(CONFIG[:github]) }
+  let(:instance) do
+    described_class.new(
+      webhook_secret: 'secret',
+      oauth_token: 'token'
+    )
+  end
   let(:signature) do
     digest = OpenSSL::Digest.new('sha1')
     hash = OpenSSL::HMAC.hexdigest(digest, 'secret', body.dup.read)

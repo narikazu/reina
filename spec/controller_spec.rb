@@ -1,4 +1,4 @@
-require_relative 'spec_helper'
+require 'reina'
 
 describe Reina::Controller do
   let(:params) { [1234, 'a#b', 'c#d'] }

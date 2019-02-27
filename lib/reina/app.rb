@@ -2,7 +2,6 @@ module Reina
   class App
     DEFAULT_REGION = 'eu'.freeze
     DEFAULT_STAGE  = 'staging'.freeze
-    DEFAULT_APP_NAME_PREFIX = CONFIG[:app_name_prefix].freeze
 
     attr_reader :heroku, :name, :project, :issue_number, :branch, :g
 
@@ -174,7 +173,7 @@ module Reina
     end
 
     def app_name_for(s)
-      "#{DEFAULT_APP_NAME_PREFIX}#{s}-#{issue_number}"
+      "#{CONFIG[:app_name_prefix]}#{s}-#{issue_number}"
     end
 
     def github_url

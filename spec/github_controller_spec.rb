@@ -130,8 +130,9 @@ RAW
 
         context 'an error occurs when deploying an app' do
           let(:comment) { 'reina: r a#b' }
+          let(:error) { Git::GitExecuteError.new("<git error message>") }
 
-          it 'deploys through a Reina::Controller and replies to the issue' do
+          before do
             expect(instance).to receive(:fork).and_yield do |ctx|
               expect(Reina::Controller)
                 .to receive(:new).with([1234, 'a#b'], true).and_return(controller)
@@ -145,7 +146,7 @@ RAW
               expect(controller).to receive(:delete_existing_apps!).once
 
               expect(controller).to receive(:deploy_parallel_apps!)
-                .and_raise { Git::GitExecuteError.new("<git error message>") }
+                .and_raise(error)
 
               expect(controller).to_not receive(:deploy_non_parallel_apps!)
             end
@@ -154,13 +155,31 @@ RAW
             allow(Octokit::Client)
               .to receive(:new).with(access_token: 'token').and_return(octokit)
             expect(user).to receive(:login)
-            expect(octokit).to receive(:add_comment).with('org/sample', 1234, 'Starting to deploy one app...')
+            expect(octokit).to receive(:add_comment)
+              .with('org/sample', 1234, 'Starting to deploy one app...')
+          end
 
-            expect(octokit).to receive(:add_comment).with('org/sample', 1234, "Encountered an error with deployment")
-
-            # expect(octokit).to receive(:add_comment).with('org/sample', 1234, deploy_message)
+          it 'replies to the issue about the problem' do
+            expect(octokit).to receive(:add_comment)
+              .with('org/sample', 1234, "Encountered an error with deployment")
 
             dispatch
+          end
+
+          context 'when the Error has an associated app' do
+            let(:error) do
+              Reina::Controller::DeploymentError.new(
+                app,
+                Git::GitExecuteError.new("<git error message>")
+              )
+            end
+
+            it 'propogates app name' do
+              expect(octokit).to receive(:add_comment)
+                .with('org/sample', 1234, "Encountered an error with deployment for '#{app_name}'")
+
+              dispatch
+            end
           end
         end
 

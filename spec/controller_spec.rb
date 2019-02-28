@@ -55,7 +55,11 @@ describe Reina::Controller do
         it do
           expect(instance).to receive(:deploy!).and_raise(Git::GitExecuteError, "error")
 
-          expect { subject }.to raise_error(Git::GitExecuteError)
+          expect { subject }.to raise_error do |err|
+            expect(err).to be_kind_of(described_class::DeploymentError)
+            expect(err.app).to eq(expected_app)
+            expect(err.reason.message).to eq(Git::GitExecuteError.new("error").message)
+          end
         end
       end
 
@@ -72,18 +76,20 @@ describe Reina::Controller do
   end
 
   describe '#deploy_parallel_apps' do
+    let(:expected_app) { apps[0] }
+
     subject(:deploy_parallel_apps!) { instance.deploy_parallel_apps! }
 
     before do
       # Mocking threaded code really hurts
-      expect(Parallel).to receive(:each).with([apps[0]]) do |args, &block|
-        expect(args).to eq([apps[0]])
+      expect(Parallel).to receive(:each).with([expected_app]) do |args, &block|
+        expect(args).to eq([expected_app])
         block.call(*args)
       end
     end
 
     it 'uses Parallel for apps that do not require any deploment order' do
-      expect(instance).to receive(:deploy!).with(apps[0])
+      expect(instance).to receive(:deploy!).with(expected_app)
 
       deploy_parallel_apps!
     end
@@ -92,12 +98,14 @@ describe Reina::Controller do
   end
 
   describe '#deploy_non_parallel_apps' do
+    let(:expected_app) { apps[1] }
+
     subject(:deploy_non_parallel_apps!) { instance.deploy_non_parallel_apps! }
 
     before { expect(Parallel).to_not receive(:each) }
 
     it 'skips Parallel and performs deployments one by one' do
-      expect(instance).to receive(:deploy!).with(apps[1])
+      expect(instance).to receive(:deploy!).with(expected_app)
       deploy_non_parallel_apps!
     end
 

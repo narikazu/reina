@@ -1,5 +1,17 @@
 module Reina
   class Controller
+    class DeploymentError < RuntimeError
+      def initialize(app, reason)
+        @app = app
+        @reason = reason
+
+        sub_msg = reason.respond_to?(:response) ? reason.response.body : reason.message
+        super("#{app.name}: #{sub_msg}")
+      end
+
+      attr_reader :app, :reason
+    end
+
     APP_COOLDOWN = 7 # seconds
 
     def initialize(params, strict = false, raise_errors: false)
@@ -32,13 +44,9 @@ module Reina
       Parallel.each(apps.select(&:parallel?)) do |app|
         begin
           deploy!(app)
-        rescue Git::GitExecuteError => e
-          puts "#{app.name}: #{e.message}"
-          raise e if raise_errors
         rescue Exception => e
-          msg = e.respond_to?(:response) ? e.response.body : e.message
-          puts "#{app.name}: #{msg}"
-          raise e if raise_errors
+          wrapped = DeploymentError.new(app, e)
+          raise_errors ? raise(wrapped) : puts(wrapped.message)
         end
       end
     end
@@ -47,13 +55,9 @@ module Reina
       apps.reject(&:parallel?).each do |app|
         begin
           deploy!(app)
-        rescue Git::GitExecuteError => e
-          puts "#{app.name}: #{e.message}"
-          raise e if raise_errors
         rescue Exception => e
-          msg = e.respond_to?(:response) ? e.response.body : e.message
-          puts "#{app.name}: #{msg}"
-          raise e if raise_errors
+          wrapped = DeploymentError.new(app, e)
+          raise_errors ? raise(wrapped) : puts(wrapped.message)
         end
       end
     end

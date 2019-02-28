@@ -113,7 +113,9 @@ module Reina
         reina.deploy_non_parallel_apps!
 
         post_reply(deploy_finished_message)
-      rescue
+      rescue Controller::DeploymentError => e
+        post_reply("Encountered an error with deployment for '#{e.app.name}'")
+      rescue Exception => e
         post_reply("Encountered an error with deployment")
       end
     end

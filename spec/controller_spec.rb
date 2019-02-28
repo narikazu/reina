@@ -3,13 +3,14 @@ require 'reina'
 describe Reina::Controller do
   let(:params) { [1234, 'a#b', 'c#d'] }
   let(:strict) { false }
-  let(:instance) { described_class.new(params, strict) }
+  let(:raise_errors) { false }
+  let(:instance) { described_class.new(params, strict, raise_errors: raise_errors) }
   let(:g) { double('Git', object: double('Git::Object', sha: 'abc')) }
   let(:apps) do
     [
       double('App', parallel?: true,
-        name: '', app_name: '', project: {}, domain_name: '', g: g),
-      double('App', parallel?: false),
+        name: 'first', app_name: 'first_heroku_name', project: {}, domain_name: '', g: g),
+      double('App', name: 'second', parallel?: false),
     ]
   end
 
@@ -46,23 +47,61 @@ describe Reina::Controller do
     end
   end
 
+  shared_examples 'handles deployment errors' do
+    context 'on error' do
+      context 'when raise_errors is true' do
+        let(:raise_errors) { true }
+
+        it do
+          expect(instance).to receive(:deploy!).and_raise(Git::GitExecuteError, "error")
+
+          expect { subject }.to raise_error(Git::GitExecuteError)
+        end
+      end
+
+      context 'when raise_errors is false' do
+        let(:raise_errors) { false }
+
+        it do
+          expect(instance).to receive(:deploy!).and_raise(Git::GitExecuteError, "error")
+
+          expect { subject }.to_not raise_error
+        end
+      end
+    end
+  end
+
   describe '#deploy_parallel_apps' do
     subject(:deploy_parallel_apps!) { instance.deploy_parallel_apps! }
 
+    before do
+      # Mocking threaded code really hurts
+      expect(Parallel).to receive(:each).with([apps[0]]) do |args, &block|
+        expect(args).to eq([apps[0]])
+        block.call(*args)
+      end
+    end
+
     it 'uses Parallel for apps that do not require any deploment order' do
-      expect(Parallel).to receive(:each).with([apps[0]])
+      expect(instance).to receive(:deploy!).with(apps[0])
+
       deploy_parallel_apps!
     end
+
+    include_examples "handles deployment errors"
   end
 
   describe '#deploy_non_parallel_apps' do
     subject(:deploy_non_parallel_apps!) { instance.deploy_non_parallel_apps! }
 
+    before { expect(Parallel).to_not receive(:each) }
+
     it 'skips Parallel and performs deployments one by one' do
-      expect(Parallel).to_not receive(:each)
       expect(instance).to receive(:deploy!).with(apps[1])
       deploy_non_parallel_apps!
     end
+
+     include_examples "handles deployment errors"
   end
 
   describe '#branches' do

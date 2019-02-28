@@ -2,9 +2,10 @@ module Reina
   class Controller
     APP_COOLDOWN = 7 # seconds
 
-    def initialize(params, strict = false)
+    def initialize(params, strict = false, raise_errors: false)
       @params = params
       @strict = strict
+      @raise_errors = raise_errors
 
       abort 'Please provide $PLATFORM_API' if CONFIG[:platform_api].blank?
       abort 'Given PR number should be greater than 0' if issue_number <= 0
@@ -33,9 +34,11 @@ module Reina
           deploy!(app)
         rescue Git::GitExecuteError => e
           puts "#{app.name}: #{e.message}"
+          raise e if raise_errors
         rescue Exception => e
           msg = e.respond_to?(:response) ? e.response.body : e.message
           puts "#{app.name}: #{msg}"
+          raise e if raise_errors
         end
       end
     end
@@ -46,9 +49,11 @@ module Reina
           deploy!(app)
         rescue Git::GitExecuteError => e
           puts "#{app.name}: #{e.message}"
+          raise e if raise_errors
         rescue Exception => e
           msg = e.respond_to?(:response) ? e.response.body : e.message
           puts "#{app.name}: #{msg}"
+          raise e if raise_errors
         end
       end
     end
@@ -89,7 +94,7 @@ module Reina
 
     private
 
-    attr_reader :params, :strict
+    attr_reader :params, :strict, :raise_errors
 
     def heroku
       @_heroku ||= PlatformAPI.connect_oauth(CONFIG[:platform_api])

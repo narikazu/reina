@@ -128,6 +128,42 @@ RAW
           end
         end
 
+        context 'an error occurs when deploying an app' do
+          let(:comment) { 'reina: r a#b' }
+
+          it 'deploys through a Reina::Controller and replies to the issue' do
+            expect(instance).to receive(:fork).and_yield do |ctx|
+              expect(Reina::Controller)
+                .to receive(:new).with([1234, 'a#b'], true).and_return(controller)
+
+              allow(ctx).to receive(:post_reply) { |msg|
+                instance.send(:post_reply, msg)
+              }
+
+              expect(controller).to receive(:apps).twice
+
+              expect(controller).to receive(:delete_existing_apps!).once
+
+              expect(controller).to receive(:deploy_parallel_apps!)
+                .and_raise { Git::GitExecuteError.new("<git error message>") }
+
+              expect(controller).to_not receive(:deploy_non_parallel_apps!)
+            end
+
+            allow(instance).to receive(:fork)
+            allow(Octokit::Client)
+              .to receive(:new).with(access_token: 'token').and_return(octokit)
+            expect(user).to receive(:login)
+            expect(octokit).to receive(:add_comment).with('org/sample', 1234, 'Starting to deploy one app...')
+
+            expect(octokit).to receive(:add_comment).with('org/sample', 1234, "Encountered an error with deployment")
+
+            # expect(octokit).to receive(:add_comment).with('org/sample', 1234, deploy_message)
+
+            dispatch
+          end
+        end
+
         context 'unknown command' do
           let(:action) { 'created' }
           let(:comment) { 'reina: u a#b' }

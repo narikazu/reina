@@ -89,9 +89,9 @@ module Reina
       deploy_finished_message = "Finished deploying.\n"
 
       reina.apps.map do |app|
+        live_url = "[Live url](#{deployed_url(app)}) " if app.show_live_url?
         deploy_finished_message += "\n\
-- #{app.name} -- [Live url](#{deployed_url(app)}) \
-[Heroku](#{heroku_url(app)}) \
+- #{app.name} -- #{live_url}[Heroku](#{heroku_url(app)}) \
 [Settings](#{heroku_url(app, "settings")}) \
 [Logs](#{heroku_url(app, "logs")})"
       end

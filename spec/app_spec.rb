@@ -200,6 +200,30 @@ describe Reina::App do
     it { is_expected.to eq('reina-stg-searchspot-1234') }
   end
 
+  describe '#show_live_url?' do
+    subject { app.show_live_url? }
+
+    it { is_expected.to be_truthy }
+
+    context 'when a whitelist exists' do
+      before { allow(Reina::CONFIG).to receive(:[]).and_call_original }
+
+      it 'is true when whitelisted' do
+        expect(Reina::CONFIG).to receive(:[]).with(:apps_with_live_url)
+          .and_return(["alphabetics", app.name, "other thing"])
+
+        is_expected.to be_truthy
+      end
+
+      it 'is false when not whitelisted' do
+        expect(Reina::CONFIG).to receive(:[]).with(:apps_with_live_url)
+          .and_return(["alphabetics", "other thing"])
+
+        is_expected.to be_falsy
+      end
+    end
+  end
+
   describe '#remote_name' do
     subject(:remote_name) { app.remote_name }
     it { is_expected.to eq('heroku-reina-stg-searchspot-1234') }

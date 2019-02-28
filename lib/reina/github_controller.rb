@@ -70,6 +70,7 @@ module Reina
     end
 
     def reply_unknown_command
+      return unless action == 'created'
       return unless comment_body.start_with?(COMMAND_PREFIX)
       command = comment_body[COMMAND_PREFIX.size .. -1].lines.first.strip
       post_reply("Unknown command: '#{command}'")

@@ -129,18 +129,34 @@ RAW
         end
 
         context 'unknown command' do
+          let(:action) { 'created' }
           let(:comment) { 'reina: u a#b' }
+
+          before do
+            allow(Octokit::Client)
+              .to receive(:new).with(access_token: 'token').and_return(octokit)
+          end
 
           it 'replies to the issue' do
             expect(instance).to_not receive(:fork)
 
-            allow(Octokit::Client)
-              .to receive(:new).with(access_token: 'token').and_return(octokit)
             expect(user).to receive(:login)
             expect(octokit).to receive(:add_comment)
               .with('org/sample', 1234, "Unknown command: 'u a#b'")
 
             dispatch
+          end
+
+          context 'when the comment is not created' do
+            let(:action) { 'not created' }
+            it 'close the HTTP request silently' do
+              expect(instance).to_not receive(:deploy!)
+              expect(instance).to_not receive(:fork)
+
+              expect(octokit).to_not receive(:add_comment)
+
+              dispatch
+            end
           end
         end
       end

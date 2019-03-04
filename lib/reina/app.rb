@@ -166,6 +166,12 @@ module Reina
       project[:parallel] != false
     end
 
+    def show_live_url?
+      whitelist = CONFIG[:apps_with_live_url]
+      return true if whitelist.nil?
+      whitelist.include?(name)
+    end
+
     private
 
     def domain_name_for(s)

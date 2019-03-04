@@ -70,6 +70,7 @@ module Reina
     end
 
     def reply_unknown_command
+      return unless action == 'created'
       return unless comment_body.start_with?(COMMAND_PREFIX)
       command = comment_body[COMMAND_PREFIX.size .. -1].lines.first.strip
       post_reply("Unknown command: '#{command}'")
@@ -88,9 +89,9 @@ module Reina
       deploy_finished_message = "Finished deploying.\n"
 
       reina.apps.map do |app|
+        live_url = "[Live url](#{deployed_url(app)}) " if app.show_live_url?
         deploy_finished_message += "\n\
-- #{app.name} -- [Live url](#{deployed_url(app)}) \
-[Heroku](#{heroku_url(app)}) \
+- #{app.name} -- #{live_url}[Heroku](#{heroku_url(app)}) \
 [Settings](#{heroku_url(app, "settings")}) \
 [Logs](#{heroku_url(app, "logs")})"
       end
@@ -112,6 +113,10 @@ module Reina
         reina.deploy_non_parallel_apps!
 
         post_reply(deploy_finished_message)
+      rescue Controller::DeploymentError => e
+        post_reply("Encountered an error with deployment for '#{e.app.name}'")
+      rescue Exception => e
+        post_reply("Encountered an error with deployment")
       end
     end
 

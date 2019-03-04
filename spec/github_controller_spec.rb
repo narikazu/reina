@@ -38,10 +38,12 @@ describe Reina::GitHubController do
         let(:event) { 'issue_comment' }
         let(:action) { 'created' }
 
+        let(:apps) { [app] }
         let(:app) do
           double('App',
             name: app_name,
-            deployed_url_suffix: 'foobar'
+            deployed_url_suffix: 'foobar',
+            show_live_url?: true,
             )
         end
         let(:controller) do
@@ -50,7 +52,7 @@ describe Reina::GitHubController do
             delete_existing_apps!: true,
             deploy_parallel_apps!: true,
             deploy_non_parallel_apps!: true,
-            apps: [app])
+            apps: apps)
         end
         let(:octokit) { double('Octokit', user: user) }
         let(:user) { double('Octokit', login: true) }
@@ -72,7 +74,7 @@ RAW
         end
 
         context 'normal deploy' do
-          it 'deploys through a Reina::Controller and replies to the issue' do
+          before do
             expect(instance).to receive(:fork).and_yield do |ctx|
               expect(Reina::Controller)
                 .to receive(:new).with([1234, 'a#b'], false).and_return(controller)
@@ -92,6 +94,57 @@ RAW
             allow(Octokit::Client)
               .to receive(:new).with(access_token: 'token').and_return(octokit)
             expect(user).to receive(:login)
+          end
+
+          context 'when there are multiple apps' do
+            let(:show_second_live_url) { true }
+            let(:apps) do
+              [
+                double(
+                  'App',
+                  name: 'first-application',
+                  deployed_url_suffix: 'foobar',
+                  show_live_url?: true,
+                ),
+                double(
+                  'App',
+                  name: 'second-application',
+                  deployed_url_suffix: 'foobar',
+                  show_live_url?: show_second_live_url,
+                ),
+              ]
+            end
+
+            it 'lists all of the apps' do
+              expect(octokit).to receive(:add_comment).with('org/sample', 1234, 'Starting to deploy 2 apps...')
+              expect(octokit).to receive(:add_comment) do |*args|
+                expect(args[0]).to eq('org/sample')
+                expect(args[1]).to eq(1234)
+                expect(args[2]).to include('first-application -- [Live url]')
+                expect(args[2]).to include('second-application -- [Live url]')
+              end
+
+              dispatch
+            end
+
+            context 'when CONFIG[:apps_with_ui] exists' do
+              let(:show_second_live_url) { false }
+
+              it 'only shows live urls for those apps' do
+                expect(octokit).to receive(:add_comment).with('org/sample', 1234, 'Starting to deploy 2 apps...')
+                expect(octokit).to receive(:add_comment) do |*args|
+                  expect(args[0]).to eq('org/sample')
+                  expect(args[1]).to eq(1234)
+                  expect(args[2]).to include('first-application -- [Live url]')
+                  expect(args[2]).to include('second-application -- [Heroku]')
+                end
+
+                dispatch
+              end
+            end
+          end
+
+          it 'deploys through a Reina::Controller and replies to the issue' do
             expect(octokit).to receive(:add_comment).with('org/sample', 1234, 'Starting to deploy one app...')
             expect(octokit).to receive(:add_comment).with('org/sample', 1234, deploy_message)
 
@@ -128,19 +181,90 @@ RAW
           end
         end
 
+        context 'an error occurs when deploying an app' do
+          let(:comment) { 'reina: r a#b' }
+          let(:error) { Git::GitExecuteError.new("<git error message>") }
+
+          before do
+            expect(instance).to receive(:fork).and_yield do |ctx|
+              expect(Reina::Controller)
+                .to receive(:new).with([1234, 'a#b'], true).and_return(controller)
+
+              allow(ctx).to receive(:post_reply) { |msg|
+                instance.send(:post_reply, msg)
+              }
+
+              expect(controller).to receive(:apps).twice
+
+              expect(controller).to receive(:delete_existing_apps!).once
+
+              expect(controller).to receive(:deploy_parallel_apps!)
+                .and_raise(error)
+
+              expect(controller).to_not receive(:deploy_non_parallel_apps!)
+            end
+
+            allow(instance).to receive(:fork)
+            allow(Octokit::Client)
+              .to receive(:new).with(access_token: 'token').and_return(octokit)
+            expect(user).to receive(:login)
+            expect(octokit).to receive(:add_comment)
+              .with('org/sample', 1234, 'Starting to deploy one app...')
+          end
+
+          it 'replies to the issue about the problem' do
+            expect(octokit).to receive(:add_comment)
+              .with('org/sample', 1234, "Encountered an error with deployment")
+
+            dispatch
+          end
+
+          context 'when the Error has an associated app' do
+            let(:error) do
+              Reina::Controller::DeploymentError.new(
+                app,
+                Git::GitExecuteError.new("<git error message>")
+              )
+            end
+
+            it 'propogates app name' do
+              expect(octokit).to receive(:add_comment)
+                .with('org/sample', 1234, "Encountered an error with deployment for '#{app_name}'")
+
+              dispatch
+            end
+          end
+        end
+
         context 'unknown command' do
+          let(:action) { 'created' }
           let(:comment) { 'reina: u a#b' }
+
+          before do
+            allow(Octokit::Client)
+              .to receive(:new).with(access_token: 'token').and_return(octokit)
+          end
 
           it 'replies to the issue' do
             expect(instance).to_not receive(:fork)
 
-            allow(Octokit::Client)
-              .to receive(:new).with(access_token: 'token').and_return(octokit)
             expect(user).to receive(:login)
             expect(octokit).to receive(:add_comment)
               .with('org/sample', 1234, "Unknown command: 'u a#b'")
 
             dispatch
+          end
+
+          context 'when the comment is not created' do
+            let(:action) { 'not created' }
+            it 'close the HTTP request silently' do
+              expect(instance).to_not receive(:deploy!)
+              expect(instance).to_not receive(:fork)
+
+              expect(octokit).to_not receive(:add_comment)
+
+              dispatch
+            end
           end
         end
       end

@@ -23,7 +23,7 @@ APPS = {
     github: 'honeypotio/honeypot',
     pipeline: 'honeypot',
     config_vars: {
-      from: 'replica-production-honeypot',
+      from: 'staging-honeypot',
       except: ['BUILDPACK_URL', 'DATABASE_URL', 'REDIS_URL', 'SEED_MODELS'],
       copy: [
         { from: 'searchspot#url', to: 'SEARCHSPOT_URL' },
@@ -230,7 +230,7 @@ class App
   end
 
   def github_url
-    "https://github.com/#{project[:github]}"
+    "ssh://git@github.com/#{project[:github]}"
   end
 
   def remote_url

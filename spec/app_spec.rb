@@ -19,7 +19,7 @@ describe Reina::App do
       config_var: heroku_config_var
     )
   end
-  let(:git) { double('Git', pull: true, remotes: [], add_remote: true, branch: true, checkout: true) }
+  let(:git) { double('Git', fetch: true, remotes: [], add_remote: true, branch: true, checkout: true) }
 
   let(:issue_number) { 1234 }
   let(:branch) { 'features/hibike' }
@@ -59,9 +59,8 @@ describe Reina::App do
     end
 
     it 'pulls from origin/master' do
-      expect(git).to receive(:pull).with('origin', branch)
-      expect(git).to receive(:checkout)
-      expect(git).to receive(:branch).with(branch)
+      expect(git).to receive(:fetch)
+      expect(git).to receive(:checkout).with("origin/#{branch}", force: true)
       fetch_repository
     end
 
@@ -190,7 +189,9 @@ describe Reina::App do
     subject(:deploy) { app.deploy }
 
     it 'deploys the app to heroku' do
-      expect(git).to receive(:push).with("heroku-#{app.app_name}", "#{branch}:master")
+      expect(git).to receive(:push)
+        .with("heroku-#{app.app_name}", "origin/#{branch}:refs/heads/master")
+
       deploy
     end
   end

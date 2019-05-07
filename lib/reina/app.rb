@@ -20,8 +20,8 @@ module Reina
         @g = Git.clone(github_url, name)
       end
 
-      g.pull('origin', branch)
-      g.checkout(g.branch(branch))
+      g.fetch('origin')
+      g.checkout("origin/#{branch}", force: true)
 
       unless g.remotes.map(&:name).include?(remote_name)
         g.add_remote(remote_name, remote_url)
@@ -134,7 +134,13 @@ module Reina
     end
 
     def deploy
-      g.push(remote_name, "#{branch}:master")
+      local_ref = "origin/#{branch}"
+
+      # Since we're not actually having a local branch and pushing just a ref we
+      # have to be explicit about the remote ref.
+      remote_ref = 'refs/heads/master'
+
+      g.push(remote_name, "#{local_ref}:#{remote_ref}")
     end
 
     def app_json

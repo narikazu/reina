@@ -1,4 +1,4 @@
-require_relative 'spec_helper'
+require 'reina'
 
 describe Reina::App do
   let(:heroku_app) { double('Heroku App') }
@@ -32,7 +32,7 @@ describe Reina::App do
 
     allow(app).to receive(:g).and_return(git)
 
-    f = File.read('specs/searchspot/app.json')
+    f = File.read('spec/searchspot/app.json')
     allow(File).to receive(:read).with('searchspot/app.json').and_return(f)
     allow(File).to receive(:exists?).with('searchspot/app.json').and_return(true)
   end
@@ -41,38 +41,26 @@ describe Reina::App do
     subject(:fetch_repository) { app.fetch_repository }
 
     context 'folder exists' do
-      before { allow(Dir).to receive(:exists?).with('/tmp/checkouts/searchspot').and_return(true) }
+      before { allow(Dir).to receive(:exists?).with('searchspot').and_return(true) }
 
       it 'opens the git folder' do
-        expect(FileUtils).to receive(:remove_dir).with('/tmp/checkouts/searchspot', force: true)
-        expect(Git).to receive(:clone).with(
-          'https://github.com/honeypotio/searchspot',
-          'searchspot',
-          path: '/tmp/checkouts/',
-        )
-
+        expect(Git).to receive(:open).with('searchspot')
         fetch_repository
       end
     end
 
     context 'folder does not exists' do
-      before { allow(Dir).to receive(:exists?).with('/tmp/checkouts/searchspot').and_return(false) }
+      before { allow(Dir).to receive(:exists?).with('searchspot').and_return(false) }
 
       it 'clones the git folder' do
-        expect(Git).to receive(:clone).with(
-          'https://github.com/honeypotio/searchspot',
-          'searchspot',
-          path: '/tmp/checkouts/',
-        )
-
+        expect(Git).to receive(:clone).with('https://github.com/honeypotio/searchspot', 'searchspot')
         fetch_repository
       end
     end
 
     it 'pulls from origin/master' do
-      expect(git).to receive(:fetch).with('origin', branch)
-      expect(git).to receive(:checkout)
-      expect(git).to receive(:branch).with(branch)
+      expect(git).to receive(:fetch)
+      expect(git).to receive(:checkout).with("origin/#{branch}", force: true)
       fetch_repository
     end
 
@@ -121,9 +109,7 @@ describe Reina::App do
       expect(heroku_addon).to receive(:create).with(app.app_name, {
         "plan"   => "bonsai",
         "config" => {
-          "options" => {
-            "version" => "2.4"
-          }
+          "version" => "2.4"
         }
       })
       install_addons
@@ -203,7 +189,9 @@ describe Reina::App do
     subject(:deploy) { app.deploy }
 
     it 'deploys the app to heroku' do
-      expect(git).to receive(:push).with("heroku-#{app.app_name}", "#{branch}:master")
+      expect(git).to receive(:push)
+        .with("heroku-#{app.app_name}", "origin/#{branch}:refs/heads/master")
+
       deploy
     end
   end
@@ -211,6 +199,30 @@ describe Reina::App do
   describe '#app_name' do
     subject(:app_name) { app.app_name }
     it { is_expected.to eq('reina-stg-searchspot-1234') }
+  end
+
+  describe '#show_live_url?' do
+    subject { app.show_live_url? }
+
+    it { is_expected.to be_truthy }
+
+    context 'when a whitelist exists' do
+      before { allow(Reina::CONFIG).to receive(:[]).and_call_original }
+
+      it 'is true when whitelisted' do
+        expect(Reina::CONFIG).to receive(:[]).with(:apps_with_live_url)
+          .and_return(["alphabetics", app.name, "other thing"])
+
+        is_expected.to be_truthy
+      end
+
+      it 'is false when not whitelisted' do
+        expect(Reina::CONFIG).to receive(:[]).with(:apps_with_live_url)
+          .and_return(["alphabetics", "other thing"])
+
+        is_expected.to be_falsy
+      end
+    end
   end
 
   describe '#remote_name' do

@@ -1,10 +1,7 @@
-require 'fileutils'
-
 module Reina
   class App
     DEFAULT_REGION = 'eu'.freeze
     DEFAULT_STAGE  = 'staging'.freeze
-    DEFAULT_APP_NAME_PREFIX = CONFIG[:app_name_prefix].freeze
 
     attr_reader :heroku, :name, :project, :issue_number, :branch, :g
 
@@ -17,16 +14,14 @@ module Reina
     end
 
     def fetch_repository
-      base_dir = '/tmp/checkouts/'
-      dir = base_dir + name
-      if Dir.exists?(dir)
-        FileUtils.remove_dir(dir, force: true)
+      if Dir.exists?(name)
+        @g = Git.open(name)
+      else
+        @g = Git.clone(github_url, name)
       end
 
-      @g = Git.clone(github_url, name, { :path => base_dir })
-
-      g.fetch('origin', branch)
-      g.checkout(g.branch(branch))
+      g.fetch('origin')
+      g.checkout("origin/#{branch}", force: true)
 
       unless g.remotes.map(&:name).include?(remote_name)
         g.add_remote(remote_name, remote_url)
@@ -44,7 +39,7 @@ module Reina
       addons = project.fetch(:addons, []) + app_json.fetch('addons', [])
       addons.each do |addon|
         if addon.is_a?(Hash) && addon.has_key?('options')
-          addon['config'] = addon.extract!('options')
+          addon['config'] = addon.delete('options')
         else
           addon = { 'plan' => addon }
         end
@@ -139,7 +134,13 @@ module Reina
     end
 
     def deploy
-      g.push(remote_name, "#{branch}:master")
+      local_ref = "origin/#{branch}"
+
+      # Since we're not actually having a local branch and pushing just a ref we
+      # have to be explicit about the remote ref.
+      remote_ref = 'refs/heads/master'
+
+      g.push(remote_name, "#{local_ref}:#{remote_ref}")
     end
 
     def app_json
@@ -163,8 +164,18 @@ module Reina
       "heroku-#{app_name}"
     end
 
+    def deployed_url_suffix
+      project.fetch(:deployed_url_suffix, '')
+    end
+
     def parallel?
       project[:parallel] != false
+    end
+
+    def show_live_url?
+      whitelist = CONFIG[:apps_with_live_url]
+      return true if whitelist.nil?
+      whitelist.include?(name)
     end
 
     private
@@ -174,7 +185,7 @@ module Reina
     end
 
     def app_name_for(s)
-      "#{DEFAULT_APP_NAME_PREFIX}#{s}-#{issue_number}"
+      "#{CONFIG[:app_name_prefix]}#{s}-#{issue_number}"
     end
 
     def github_url

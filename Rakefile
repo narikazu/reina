@@ -12,7 +12,7 @@ task :install do
 end
 
 task :test do
-  Dir['./specs/**/*_spec.rb'].each do |spec|
+  Dir['./spec/**/*_spec.rb'].each do |spec|
     sh "bundle exec rspec #{spec} --backtrace --color --format doc"
   end
 end

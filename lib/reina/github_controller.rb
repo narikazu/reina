@@ -8,8 +8,9 @@ module Reina
   class UnsupportedEventError < StandardError; end
 
   class GitHubController
-    DEPLOY_TRIGGER = 'reina: d '.freeze
-    SINGLE_DEPLOY_TRIGGER = 'reina: r '.freeze
+    COMMAND_PREFIX = 'reina:'.freeze
+    DEPLOY_TRIGGER = "#{COMMAND_PREFIX} d ".freeze
+    SINGLE_DEPLOY_TRIGGER = "#{COMMAND_PREFIX} r ".freeze
     EVENTS = %w(issues issue_comment).freeze
 
     def initialize(config)
@@ -29,13 +30,21 @@ module Reina
         deploy!(true)
       elsif issue_closed?
         destroy!
+      elsif is_comment?
+        reply_unknown_command
       end
     end
 
-    def deployed_url
-      [
-        'https://', CONFIG[:app_name_prefix], repo_name, '-', issue_number, '.herokuapp.com'
-      ].join
+    def deployed_app_name(app)
+      "#{CONFIG[:app_name_prefix]}#{app.name}-#{issue_number}"
+    end
+
+    def deployed_url(app)
+      "https://#{deployed_app_name(app)}.herokuapp.com/#{app.deployed_url_suffix}"
+    end
+
+    def heroku_url(app, path = "")
+      "https://dashboard.heroku.com/apps/#{deployed_app_name(app)}/#{path}"
     end
 
     private
@@ -60,21 +69,42 @@ module Reina
       action == 'closed'.freeze
     end
 
+    def reply_unknown_command
+      return unless action == 'created'
+      return unless comment_body.start_with?(COMMAND_PREFIX)
+      command = comment_body[COMMAND_PREFIX.size .. -1].lines.first.strip
+      post_reply("Unknown command: '#{command}'")
+    end
+
+    def post_reply(msg)
+      should_comment = config[:oauth_token].present?
+      return unless should_comment
+
+      octokit.add_comment(repo_full_name, issue_number, msg)
+    end
+
     def deploy!(strict = false)
       reina = Controller.new(params, strict)
-      should_comment = config[:oauth_token].present?
-      reply = ->(msg) { octokit.add_comment(repo_full_name, issue_number, msg) }
-      url = deployed_url
+
+      deploy_finished_message = "Finished deploying.\n"
+
+      reina.apps.map do |app|
+        live_url = "[Live url](#{deployed_url(app)}) " if app.show_live_url?
+        deploy_finished_message += "\n\
+- #{app.name} -- #{live_url}[Heroku](#{heroku_url(app)}) \
+[Settings](#{heroku_url(app, "settings")}) \
+[Logs](#{heroku_url(app, "logs")})"
+      end
+
+      deploy_finished_message += "\n"
 
       fork do
         apps_count = reina.apps.size
 
-        if should_comment
-          if apps_count > 1
-            reply.call("Starting to deploy #{apps_count} apps...")
-          else
-            reply.call("Starting to deploy one app...")
-          end
+        if apps_count > 1
+          post_reply("Starting to deploy #{apps_count} apps...")
+        else
+          post_reply("Starting to deploy one app...")
         end
 
         reina.create_netrc if reina.heroku?
@@ -82,8 +112,11 @@ module Reina
         reina.deploy_parallel_apps!
         reina.deploy_non_parallel_apps!
 
-        s = 's'.freeze if apps_count > 1
-        reply.call("Deployment#{s} finished. Live at #{url}.") if should_comment
+        post_reply(deploy_finished_message)
+      rescue Controller::DeploymentError => e
+        post_reply("Encountered an error with deployment for '#{e.app.name}'")
+      rescue Exception => e
+        post_reply("Encountered an error with deployment")
       end
     end
 
@@ -92,13 +125,12 @@ module Reina
       return if reina.existing_apps.empty?
 
       should_comment = config[:oauth_token].present?
-      reply = ->(msg) { octokit.add_comment(repo_full_name, issue_number, msg) }
 
       fork do
         reina.create_netrc if reina.heroku?
         reina.delete_existing_apps!
 
-        reply.call('All the staging apps related to this issue have been deleted.') if should_comment
+        post_reply('All the staging apps related to this issue have been deleted.')
       end
     end
 
@@ -146,6 +178,10 @@ module Reina
 
     def repo_full_name
       payload.dig('repository', 'full_name')
+    end
+
+    def is_comment?
+      event == 'issue_comment' && payload.dig('comment').present?
     end
 
     def comment_body

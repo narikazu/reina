@@ -2,6 +2,7 @@ require 'reina'
 
 describe Reina::App do
   let(:heroku_app) { double('Heroku App') }
+  let(:heroku_team_app) { double('Heroku App') }
   let(:heroku_addon) { double('Heroku Addon') }
   let(:heroku_buildpack) { double('Heroku Buildpack Installation') }
   let(:heroku_formation) { double('Heroku Formation') }
@@ -11,6 +12,7 @@ describe Reina::App do
   let(:heroku) do
     double('Heroku',
       app: heroku_app,
+      team_app: heroku_team_app,
       addon: heroku_addon,
       buildpack_installation: heroku_buildpack,
       formation: heroku_formation,
@@ -97,6 +99,30 @@ describe Reina::App do
       it 'creates a new app on Heroku' do
         Reina::APPS[:searchspot].delete(:region)
         expect(heroku_app).to receive(:create).with('name' => app.app_name, 'region' => 'eu')
+        create_app
+      end
+    end
+
+    context 'team is specified' do
+      it 'creates a new app on Heroku' do
+        Reina::APPS[:searchspot][:team] = 'foobar'
+
+        expect(heroku_team_app).to receive(:create).with(
+          'name' => app.app_name,
+          'region' => 'eu',
+          'team' => 'foobar'
+        )
+
+        create_app
+      end
+    end
+
+    context 'team is not specified' do
+      it 'creates a new app on Heroku' do
+        Reina::APPS[:searchspot].delete(:team)
+
+        expect(heroku_app).to receive(:create).with('name' => app.app_name, 'region' => 'eu')
+
         create_app
       end
     end

@@ -29,10 +29,18 @@ module Reina
     end
 
     def create_app
-      heroku.app.create(
+      params = {
         'name'   => app_name,
         'region' => project.fetch(:region, DEFAULT_REGION)
-      )
+      }
+
+      if team = project[:team]
+        heroku.team_app.create(
+          params.merge('team' => team)
+        )
+      else
+        heroku.app.create(params)
+      end
     end
 
     def install_addons

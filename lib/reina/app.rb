@@ -115,7 +115,8 @@ module Reina
       return if formation.blank?
 
       formation.each do |k, h|
-        h['size'] = 'free'
+        # Heroku Teams only support hobby and professional dynos.
+        h['size'] = project[:team].present? ? 'hobby' : 'free'
 
         heroku.formation.update(app_name, k, h)
       end

@@ -182,6 +182,16 @@ describe Reina::App do
       expect(heroku_formation).to receive(:update).with(app.app_name, 'web', dyno_opts)
       setup_dynos
     end
+
+    context 'team is specified' do
+      it 'sets up the dynos as a hobby size' do
+        Reina::APPS[:searchspot][:team] = 'foobar'
+
+        dyno_opts = { 'quantity' => 1, 'size' => 'hobby' }
+        expect(heroku_formation).to receive(:update).with(app.app_name, 'web', dyno_opts)
+        setup_dynos
+      end
+    end
   end
 
   describe '#add_to_pipeline' do

@@ -75,7 +75,10 @@ module Reina
         config_vars = heroku.config_var.info_for_app(config_vars[:from])
 
         vars_cache = {}
+
         copy.each do |h|
+          puts "#{name}: Processing Config copy from #{h[:from]}: #{h[:to]}"
+
           unless h[:from].include?('#')
             s = config_vars[h[:from]]
             s << h[:append] if h[:append].present?
@@ -90,6 +93,7 @@ module Reina
             config_vars[h[:to]] = "https://#{domain_name_for(source_app_name)}"
           else
             vars_cache[source_app_name] ||= heroku.config_var.info_for_app(source_app_name)
+            puts "#{name}: Assigning from #{h[:from]}: #{h[:to]} = '#{vars_cache[source_app_name][var]}'"
             config_vars[h[:to]] = vars_cache[source_app_name][var]
           end
         end

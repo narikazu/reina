@@ -170,7 +170,36 @@ describe Reina::App do
         'COOKIE_DOMAIN' => '.herokuapp.com',
         'RUST_VERSION' => 'nightly'
       })
+
       set_env_vars
+    end
+
+    context 'when copying from newly created app' do
+      before do
+        Reina::APPS[:searchspot][:config_vars][:copy][0][:from] = "searchspot#BONSAI_URL"
+      end
+
+      it 'set the env vars defined in the config and in the app.json file' do
+        allow(heroku_config_var).to receive(:info_for_app)
+          .with('staging-searchspot').and_return({
+          'BONSAI_URL' => 'staging-thing'
+        })
+        allow(heroku_config_var).to receive(:info_for_app)
+          .with('reina-stg-searchspot-1234').and_return({
+          'BONSAI_URL' => 'new-thing'
+        })
+        # FIXME: append doesn't work
+        expect(heroku_config_var).to receive(:update).with(app.app_name, {
+          'ES_URL'   => 'new-thing',
+          'APP_NAME' => 'reina-stg-searchspot-1234',
+          'HEROKU_APP_NAME' => 'reina-stg-searchspot-1234',
+          'DOMAIN_NAME' => 'reina-stg-searchspot-1234.herokuapp.com',
+          'COOKIE_DOMAIN' => '.herokuapp.com',
+          'RUST_VERSION' => 'nightly'
+        })
+
+        set_env_vars
+      end
     end
   end
 

@@ -179,7 +179,7 @@ describe Reina::App do
         Reina::APPS[:searchspot][:config_vars][:copy][0][:from] = "searchspot#BONSAI_URL"
       end
 
-      it 'set the env vars defined in the config and in the app.json file' do
+      it 'set the var based on the new env' do
         allow(heroku_config_var).to receive(:info_for_app)
           .with('staging-searchspot').and_return({
           'BONSAI_URL' => 'staging-thing'
@@ -199,6 +199,19 @@ describe Reina::App do
         })
 
         set_env_vars
+      end
+
+      it 'raises when it cannot find the var in the env' do
+        allow(heroku_config_var).to receive(:info_for_app)
+          .with('staging-searchspot').and_return({
+          'BONSAI_URL' => 'staging-thing'
+        })
+        allow(heroku_config_var).to receive(:info_for_app)
+          .with('reina-stg-searchspot-1234').and_return({
+          'GOLD_URL' => 'new-thing'
+        })
+
+        expect { set_env_vars }.to raise_error(KeyError)
       end
     end
   end

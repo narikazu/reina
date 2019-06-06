@@ -121,6 +121,10 @@ module Reina
       app.create_app
       app.install_addons
       app.add_buildpacks
+
+      puts "#{app.name}: Waiting for addons..."
+      Kernel.sleep APP_COOLDOWN
+
       app.set_env_vars
 
       puts "#{app.name}: Deploying to https://#{app.domain_name}..."

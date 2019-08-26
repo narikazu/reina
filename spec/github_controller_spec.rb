@@ -236,6 +236,67 @@ RAW
           end
         end
 
+        context 'destory command' do
+          let(:action) { 'created' }
+          let(:comment) { 'reina: destroy!' }
+
+          let(:controller) do
+            double('Controller',
+              heroku?: false,
+              existing_apps: existing_apps,
+              delete_existing_apps!: true)
+          end
+
+          it 'request for them to be destroyed' do
+            expect(instance).to receive(:destroy!)
+            expect(instance).to_not receive(:deploy!)
+            dispatch
+          end
+
+          context 'there are existing apps to be destroyed' do
+            let(:existing_apps) { [1] }
+
+            it 'destroys them through a Reina::Controller and replies to the issue' do
+              expect(Reina::Controller)
+                .to receive(:new).with([1234]).and_return(controller)
+
+              expect(instance).to receive(:fork).and_yield do |ctx|
+                allow(ctx).to receive(:post_reply) { |msg|
+                  instance.send(:post_reply, msg)
+                }
+
+                expect(controller).to receive(:delete_existing_apps!).once
+              end
+
+              allow(instance).to receive(:fork)
+              allow(Octokit::Client)
+                .to receive(:new).with(access_token: 'token').and_return(octokit)
+              expect(user).to receive(:login)
+
+              msg = 'All the staging apps related to this issue have been deleted.'
+              expect(octokit).to receive(:add_comment).with('org/sample', 1234, msg)
+
+              dispatch
+            end
+          end
+
+          context 'there are no apps to destroy' do
+            let(:existing_apps) { [] }
+
+            it 'does nothing' do
+              expect(Reina::Controller)
+                .to receive(:new).with([1234]).and_return(controller)
+
+              expect(controller).to_not receive(:delete_existing_apps!)
+
+              expect(instance).to_not receive(:fork)
+              expect(Octokit::Client).to_not receive(:new)
+
+              dispatch
+            end
+          end
+        end
+
         context 'unknown command' do
           let(:action) { 'created' }
           let(:comment) { 'reina: u a#b' }

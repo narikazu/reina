@@ -9,6 +9,7 @@ module Reina
 
   class GitHubController
     COMMAND_PREFIX = 'reina:'.freeze
+    DESTROY_TRIGGER = "#{COMMAND_PREFIX} destroy!".freeze
     DEPLOY_TRIGGER = "#{COMMAND_PREFIX} d ".freeze
     SINGLE_DEPLOY_TRIGGER = "#{COMMAND_PREFIX} r ".freeze
     EVENTS = %w(issues issue_comment).freeze
@@ -24,7 +25,9 @@ module Reina
 
       authenticate!
 
-      if deploy_requested?
+      if destroy_requested?
+        destroy!
+      elsif deploy_requested?
         deploy!
       elsif single_deploy_requested?
         deploy!(true)
@@ -55,6 +58,10 @@ module Reina
       hash = OpenSSL::HMAC.hexdigest(hmac_digest, config[:webhook_secret], raw_payload)
       hash.prepend('sha1=')
       raise SignatureError unless Rack::Utils.secure_compare(hash, signature)
+    end
+
+    def destroy_requested?
+      action == 'created'.freeze && comment_body.start_with?(DESTROY_TRIGGER)
     end
 
     def deploy_requested?
@@ -144,7 +151,7 @@ module Reina
     end
 
     def params
-      return [issue_number] if comment_body.blank?
+      return [issue_number] if comment_body.blank? || destroy_requested?
 
       [
         issue_number,

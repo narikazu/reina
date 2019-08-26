@@ -253,6 +253,55 @@ RAW
             dispatch
           end
 
+          context 'when specifying an issue number' do
+            let(:existing_apps) { [1] }
+            let(:comment) { 'reina: destroy! 4321' }
+
+            it 'uses the number as the target' do
+              expect(Reina::Controller)
+                .to receive(:new).with([4321]).and_return(controller)
+
+              expect(instance).to receive(:fork).and_yield do |ctx|
+                allow(ctx).to receive(:post_reply) { |msg|
+                  instance.send(:post_reply, msg)
+                }
+
+                expect(controller).to receive(:delete_existing_apps!).once
+              end
+
+              allow(instance).to receive(:fork)
+              allow(Octokit::Client)
+                .to receive(:new).with(access_token: 'token').and_return(octokit)
+              expect(user).to receive(:login)
+
+              msg = 'All the staging apps related to this issue have been deleted.'
+              expect(octokit).to receive(:add_comment).with('org/sample', 1234, msg)
+
+              dispatch
+            end
+          end
+
+          context 'when specifying an issue number which is not a number' do
+            let(:existing_apps) { [1] }
+            let(:comment) { 'reina: destroy! abc' }
+
+            it 'uses the number as the target' do
+              expect(Reina::Controller)
+                .to_not receive(:new)
+
+              expect(instance).to_not receive(:fork)
+
+              allow(Octokit::Client)
+                .to receive(:new).with(access_token: 'token').and_return(octokit)
+              expect(user).to receive(:login)
+
+              msg = "Unable to parse issue number 'abc'."
+              expect(octokit).to receive(:add_comment).with('org/sample', 1234, msg)
+
+              expect { dispatch }.to raise_error(ArgumentError, 'invalid value for Integer(): "abc"')
+            end
+          end
+
           context 'there are existing apps to be destroyed' do
             let(:existing_apps) { [1] }
 

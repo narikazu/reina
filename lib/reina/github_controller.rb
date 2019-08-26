@@ -151,16 +151,24 @@ module Reina
     end
 
     def params
-      return [issue_number] if comment_body.blank? || destroy_requested?
+      extra_params = comment_body
+        .lines.first
+        &.split(/#{DESTROY_TRIGGER}|#{DEPLOY_TRIGGER}|#{SINGLE_DEPLOY_TRIGGER}/)[1]
+        &.split(' ')
+        &.reject(&:blank?)
 
-      [
-        issue_number,
-        comment_body
-          .lines[0]
-          .split(/#{DEPLOY_TRIGGER}|#{SINGLE_DEPLOY_TRIGGER}/)[1]
-          .split(' ')
-          .reject(&:blank?)
-      ].flatten
+      return [issue_number] unless extra_params.present?
+
+      if destroy_requested?
+        begin
+          [Integer(extra_params[0])]
+        rescue => e
+          post_reply("Unable to parse issue number '#{extra_params[0]}'.")
+          raise e
+        end
+      else
+        [issue_number, extra_params].flatten
+      end
     end
 
     def signature

@@ -16,7 +16,7 @@ describe Reina::GitHubController do
   let(:env) do
     { 'HTTP_X_HUB_SIGNATURE' => signature, 'HTTP_X_GITHUB_EVENT' => event }
   end
-  let(:comment) { 'reina: d a#b' }
+  let(:comment) { nil }
   let(:body) do
     StringIO.new({
       action: action,
@@ -37,6 +37,7 @@ describe Reina::GitHubController do
       context 'an issue is created' do
         let(:event) { 'issue_comment' }
         let(:action) { 'created' }
+        let(:comment) { "reina: d a#b" }
 
         let(:apps) { [app] }
         let(:app) do
@@ -402,7 +403,7 @@ RAW
         context 'there are existing apps to be destroyed' do
           it 'destroys them through a Reina::Controller and replies to the issue' do
             expect(Reina::Controller)
-              .to receive(:new).with([1234, 'a#b']).and_return(controller)
+              .to receive(:new).with([1234]).and_return(controller)
 
             expect(instance).to receive(:fork).and_yield do |ctx|
               allow(ctx).to receive(:post_reply) { |msg|
@@ -429,7 +430,7 @@ RAW
 
           it 'does nothing' do
             expect(Reina::Controller)
-              .to receive(:new).with([1234, 'a#b']).and_return(controller)
+              .to receive(:new).with([1234]).and_return(controller)
 
             expect(controller).to_not receive(:delete_existing_apps!)
 

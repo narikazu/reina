@@ -151,6 +151,8 @@ module Reina
     end
 
     def params
+      return [issue_number] if comment_body.blank?
+
       extra_params = comment_body
         .lines.first
         &.split(/#{DESTROY_TRIGGER}|#{DEPLOY_TRIGGER}|#{SINGLE_DEPLOY_TRIGGER}/)[1]

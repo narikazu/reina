@@ -44,14 +44,16 @@ similar to ours. Feel free to open an issue for anything or submit a pull reques
 Usage
 ----
 
+There are two ways to use reina: as a github bot or as a CLI-app.
+
 When used as a bot, just leave a comment in an issue like `reina: d projectzero#nice-feature-branch`.
 Reina will handle all the cleaning once you eventually close it.
-By executing once again the command, the stagings will be replaced with a fresh new deploy.
+By executing once again the command, the stagings will be replaced with a fresh new deploy. If a branch is not specified, it will automatically deploy the latest master branch for each supported project.
 
-You will replace the `d` with `r` (as in `reina: r projectzero#nice-feature-branch`) when you want
-to enable the `strict` mode which deploys only the apps that you have explicitly specified in the command
+You can also replace the `d` with `r` (as in `reina: r projectzero#nice-feature-branch`) when you want
+to enable the `strict` mode which re-deploys only the apps that you have explicitly specified in the command
 which is useful when you want to deploy only the latest version of an application that you have already
-deployed rather than the whole suite.
+deployed rather than the whole suite (to save time).
 
 As a CLI application, execute `$ reina 1234 "projectzero#nice-feature-branch"`.
 

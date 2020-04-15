@@ -12,8 +12,6 @@ module Reina
       attr_reader :app, :reason
     end
 
-    APP_COOLDOWN = 7 # seconds
-
     def initialize(params, strict = false, raise_errors: false)
       @params = params
       @strict = strict
@@ -100,6 +98,11 @@ module Reina
 
     attr_reader :params, :strict, :raise_errors
 
+    def wait_with_message(message)
+      wait_time = ENV.fetch("APP_COOLDOWN", 15).to_i # seconds
+      Kernel.sleep wait_time
+    end
+
     def heroku
       @_heroku ||= PlatformAPI.connect_oauth(CONFIG[:platform_api])
     end
@@ -122,16 +125,14 @@ module Reina
       app.install_addons
       app.add_buildpacks
 
-      puts "#{app.name}: Waiting for addons..."
-      Kernel.sleep APP_COOLDOWN
+      wait_with_message "#{app.name}: Waiting for addons..."
 
       app.set_env_vars
 
       puts "#{app.name}: Deploying to https://#{app.domain_name}..."
       app.deploy
 
-      puts "#{app.name}: Cooldown..."
-      Kernel.sleep APP_COOLDOWN
+      wait_with_message "#{app.name}: Cooldown..."
 
       puts "#{app.name}: Executing postdeploy scripts..."
       app.execute_postdeploy_scripts

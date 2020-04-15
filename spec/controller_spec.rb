@@ -124,18 +124,38 @@ describe Reina::Controller do
 
   describe '#deploy!' do
     let(:app) { apps[0] }
+    let(:expected_sleep) { 15 }
     subject(:deploy!) { instance.send(:deploy!, app) }
 
-    before { allow(Kernel).to receive(:sleep).with(7) }
+    before { allow(Kernel).to receive(:sleep).with(expected_sleep) }
 
-
-    it 'executes one by one all the required commands to Reina::App for deploying' do
+    def do_deploy
       %i(
         fetch_repository create_app install_addons add_buildpacks set_env_vars
         deploy execute_postdeploy_scripts setup_dynos add_to_pipeline
       ).each { |cmd| expect(app).to receive(cmd).once }
 
       deploy!
+    end
+
+    it 'executes one by one all the required commands to Reina::App for deploying' do
+      do_deploy
+    end
+
+    context 'when ENV var for sleep is updated' do
+      let(:expected_sleep) { 1337 }
+
+      before do
+        allow(ENV).to(
+          receive(:fetch)
+            .with("APP_COOLDOWN", anything)
+            .and_return("1337")
+        )
+      end
+
+      it 'executes one by one all the required commands to Reina::App for deploying' do
+        do_deploy
+      end
     end
   end
 end

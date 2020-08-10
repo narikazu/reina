@@ -13,6 +13,10 @@ module Reina
       @branch       = branch
     end
 
+    def branch_exists?
+      g.branches.remote.map(&:name).include?(branch)
+    end
+
     def fetch_repository
       if Dir.exists?(name)
         @g = Git.open(name)
@@ -187,6 +191,32 @@ module Reina
       return true if whitelist.nil?
       whitelist.include?(name)
     end
+
+    def live_url
+      "[Live url](#{deployed_url}) " if show_live_url?
+    end
+
+    def message
+      <<~EOT
+        - #{name} -- #{live_url}[Heroku](#{heroku_url})
+        [Settings](#{heroku_url("settings")})
+        [Logs](#{heroku_url("logs")})
+      EOT
+    end
+
+    def heroku_url(path = "")
+      "https://dashboard.heroku.com/apps/#{deployed_app_name}/#{path}"
+    end
+
+    def deployed_url
+      "https://#{deployed_app_name}.herokuapp.com/#{deployed_url_suffix}"
+    end
+
+    def deployed_app_name
+      "#{CONFIG[:app_name_prefix]}#{name}-#{issue_number}"
+    end
+
+
 
     private
 

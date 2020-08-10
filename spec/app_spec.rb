@@ -307,4 +307,12 @@ describe Reina::App do
     subject(:remote_name) { app.remote_name }
     it { is_expected.to eq('heroku-reina-stg-searchspot-1234') }
   end
+
+  describe '#message' do
+    subject { app.message }
+
+    it do
+      is_expected.to eq("")
+    end
+  end
 end
